@@ -1,0 +1,27 @@
+Version 0.2.2 (release January 17, 2005)
+
+ * Added a README file as preparation for CPAN
+
+
+Version 0.2.1 (released November 4, 2004)
+
+ * Handling of shared AFS libraries.
+   Thanks to Wolfgang Friebel <Wolfgang.Friebel at desy.de>
+
+
+Version 0.2.0 (released October 14, 2004)
+
+ * Extended user interface of some functions. They now not only
+   take array refs but also single names as string as input.
+   Thanks to Peter Scott <Peter.J.Scott at jpl.nasa.gov>
+
+
+Version 0.1.2 (released September 1, 2004)
+
+ * Added changes for Mac OS X
+   Thanks to Sebastian Hagedorn <Hagedorn at uni-koeln.de>
+
+
+Version 0.1 (released August 15, 2004, revision 1.9)
+
+ * First public release

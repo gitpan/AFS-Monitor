@@ -1,0 +1,121 @@
+#------------------------------------------------------------------------------
+# afsperldebug.pod
+#
+# Copyright © 2004 Alf Wachsmann <alfw@slac.stanford.edu> and
+#                  Elizabeth Cassell <e_a_c@mailsnare.net>
+#
+# $Revision: 1.1 $ $Date: 2004/10/22 15:04:40 $ $Author: alfw $
+#
+# This library is free software; you can redistribute it and/or modify it
+# under the same terms as Perl itself.
+#------------------------------------------------------------------------------
+
+=head1 NAME
+
+B<AFS::Monitor> - Perl interface to AFS monitoring and debugging tools
+
+=head1 DESCRIPTION
+
+=over
+
+=item B<afsmonitor>
+
+Gathers statistics about specified File Server and Cache Manager operations.
+There are 271 available File Server statistics and 571 available Cache Manager
+statistics, listed in L<afsmon_stats(1)>.
+See L<afsmonitor(1)>
+
+=item B<cmdebug>
+
+Reports status of cache manager and cache entries on a particular AFS
+client machine. See L<cmdebug(1)>
+
+=item B<rxdebug>
+
+Provides debugging trace of Rx activity for a specified server or client
+machine. See L<rxdebug(1)>
+
+=item B<scout>
+
+Gathers statistics from the File Server processes running on the specified
+machines. See L<scout(1)>
+
+=item B<udebug>
+
+Reports the status of the Ubik process associated with a database server
+process. See L<udebug(1)>
+
+=item B<xstat_cm_test>
+
+Gathers the specified data collections associated with the specified Cache
+Manager. See L<xstat_cm_test(1)>
+
+=item B<xstat_fs_test>
+
+Gathers the specified data collections associated with the specified File
+Server process. See L<xstat_fs_test(1)>
+
+=back
+
+=head1 COMPATIBILITY
+
+The configurations that this package has been tested on are listed below:
+
+        OS               @sys           compiler
+        ------------------------------------------
+        Solaris          sun4x_58       gcc-2.95.3
+                         sun4x_59       gcc-2.95.3
+
+        Red Hat 7.2      i386_linux24   gcc-2.95.3
+
+        Red Hat Enterprise Linux 3
+                         i386_linux24   gcc-3.2.3
+	SuSE Linux 8.2   i386_linux24   gcc-3.3.3
+
+	Mac OS X	 ppc_darwin_70	gcc-3.3
+
+
+Perl 5.6.1 or newer (haven't tested on any older versions.)
+No problems were found with threaded Perl.
+AFS system libraries (either B<IBM/Transarc AFS v3.6> or B<OpenAFS 1.2.x>
+or newer) AFS header files.
+
+=head1 PREREQUISITES
+
+This package does not depend on any other Perl modules.
+
+=head1 AUTHORS
+
+The code and documentation for this class were contributed by Stanford
+Linear Accelerator Center, a department of Stanford University.
+This documentation was written by
+
+=over
+
+=item Elizabeth Cassell <e_a_c@mailsnare.net> and
+
+=item Alf Wachsmann <alfw@slac.stanford.edu>
+
+=back
+
+=head1 COPYRIGHT AND DISCLAIMER
+
+ Copyright 2004 Alf Wachsmann <alfw@slac.stanford.edu> and
+                Elizabeth Cassell <e_a_c@mailsnare.net>
+ All rights reserved.
+
+ Most of the explanations in this document are taken from the original
+ AFS documentation.
+
+ AFS-3 Programmer's Reference:
+ Volume Server/Volume Location Server Interface
+ Edward R. Zayas
+ (c) 1991 Transarc Corporation.
+ All rights reserved.
+
+ IBM AFS Administration Reference
+ (c) IBM Corporation 2000.
+ All rights reserved.
+
+ This library is free software; you can redistribute it and/or modify it
+ under the same terms as Perl itself.

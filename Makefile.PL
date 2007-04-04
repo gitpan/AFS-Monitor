@@ -5,14 +5,12 @@ use Config;
 
 my $archname = $Config{'archname'};
 
-# if ($archname =~ /thread/i) { die "Threaded Perl is not supported ...\n"; }
-
-my $VERSION = "0.2.2";
+my $VERSION = "0.3.1";
 
 # provide the POD documentation
-mkdir('./lib');
-mkdir('./lib/AFS');
-mkdir('./lib/AFS/Monitor');
+mkdir('./lib', 0755);
+mkdir('./lib/AFS', 0755);
+mkdir('./lib/AFS/Monitor', 0755);
 system("cp ./pod/Monitor.pod       lib/AFS/Monitor.pod");
 system("cp ./pod/afsmon_stats.pod  lib/AFS/Monitor/afsmon_stats.pod");
 system("cp ./pod/afsmonitor.pod    lib/AFS/Monitor/afsmonitor.pod");
@@ -31,7 +29,7 @@ WriteMakefile(
                    ('AUTHOR'   => 'Alf Wachsmann, Elizabeth Cassell',
                     'ABSTRACT' => 'Perl interface to AFS monitoring and debugging APIs'
                    ) : () ),
-              'realclean'  => {FILES => 'Makefile.bak pod/*.html pod/pod2htm* lib examples/debug_out/debug examples/debug_out/outputfile'},
+              'realclean'  => {FILES => 'Makefile.bak pod/*.html pod/pod2htm* lib/AFS/*.pod lib/AFS/Monitor/*.pod examples/debug_out/debug examples/debug_out/outputfile'},
              );
 
 

@@ -14,7 +14,11 @@
 #                                   field format expansion
 #       August 2004  - SLAC       - modified to use the Perl rxdebu function
 #
+#   Aug 30, 2006 - Jeff Blaine - Added CSV stats output mode
+#
 # Parameters are -s <server> -p <port> -t <sleeptime in seconds>
+# and -C to enable CSV-output mode
+#
 # Example:
 #	Meltdown.pl -s point -p 7000 -t 300
 #
@@ -32,6 +36,7 @@ sub Usage {
 	print STDERR " -s <server>    (required parameter, no default).\n";
 	print STDERR " -p <port>      (default: 7000).\n";
 	print STDERR " -t <interval>  (default: 1200 seconds).\n";
+	print STDERR " -C             \n";
 	print STDERR " -h             (help: show this help message).\n\n";
 	print STDERR "Example: $progName -s point -p 7000\n";
 	print STDERR "Collect statistics on server point for port 7000\n";
@@ -57,7 +62,11 @@ sub Check_data {
 } # Check_data
 
 sub Header {
-	print "\nhh:mm:ss wproc nobufs   wpack  fpack    calls     delta  data      resends  idle\n";
+    if ($csvmode != 1) {
+    	print "\nhh:mm:ss wproc nobufs   wpack  fpack    calls     delta  data      resends  idle\n";
+    } else { # assume CSV mode...
+    	print "\nhh:mm:ss,wproc,nobufs,wpack,fpack,calls,delta,data,resends,idle\n";
+    }
 } # Header
 
 #
@@ -83,6 +92,7 @@ $progName = reverse($tmpName);
 $server	= "";
 $port	= 7000;
 $delay	= 1200;
+$csvmove = 0;
 
 #
 # any parms?
@@ -99,6 +109,10 @@ while ($_ = shift(@ARGV)) {
 		};
 		/^-[tT]/ && do {
 			$delay = shift(@ARGV);
+			last GETPARMS;
+		};
+		/^-C/ && do {
+			$csvmode = 1;
 			last GETPARMS;
 		};
 		/^-[hH\?]/ && do {
@@ -143,7 +157,7 @@ $oldcall = 0;
 #
 # force header display on first call
 #
-$linecnt = 20;
+$firstrun = 1;
 
 #
 # run until we get cancelled
@@ -152,8 +166,14 @@ while (1) {
 	#
 	# show the column headers for every 20 lines of data
 	#
+    if ($firstrun == 1) {
+        Header;
+        $firstrun = 0;
+    }
 	if ($linecnt >= 20) {
-		Header;
+        if ($csvmode != 1) {
+    		Header;
+        }
 		$linecnt = 1;
 	}
 	else {
@@ -202,14 +222,20 @@ while (1) {
 	#
 	Check_data;
 
-	#
-	# output the timestamp and current results
-	#
-	printf "%2.2d:%2.2d:%2.2d ", $hour,$min,$sec;
-	printf "%-$Ln[0].0f %-$Ln[1].0f %-$Ln[2].0f %-$Ln[3].0f ",
-		$wproc,$nobuf,$wpack,$fpack;
-	printf "%-$Ln[4].0f %-$Ln[5].0f %-$Ln[6].0f %-$Ln[7].0f %-$Ln[8].0f\n",
-		$calls,$delta,$data,$resend,$idle;
+    if ($csvmode != 1) {
+    	#
+    	# output the timestamp and current results
+    	#
+    	printf "%2.2d:%2.2d:%2.2d ", $hour,$min,$sec;
+    	printf "%-$Ln[0].0f %-$Ln[1].0f %-$Ln[2].0f %-$Ln[3].0f ",
+    		$wproc,$nobuf,$wpack,$fpack;
+    	printf "%-$Ln[4].0f %-$Ln[5].0f %-$Ln[6].0f %-$Ln[7].0f %-$Ln[8].0f\n",
+    		$calls,$delta,$data,$resend,$idle;
+    } else { # must be csv mode then...
+    	printf "%2.2d:%2.2d:%2.2d,", $hour,$min,$sec;
+    	printf "$wproc,$nobuf,$wpack,$fpack";
+    	printf "$calls,$delta,$data,$resend,$idle\n";
+    }
 
   	#
 	# delay for the required interval

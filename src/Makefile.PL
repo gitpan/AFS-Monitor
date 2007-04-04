@@ -1,12 +1,13 @@
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: Makefile.PL,v 1.17 2004/11/04 21:46:01 alfw Exp $"
+# RCS-Id: "@(#)$Id: Makefile.PL,v 1.20 2007/04/04 17:01:43 alfw Exp $"
 #
 # Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
-#                  2004 Alf Wachsmann <alfw@slac.stanford.edu>
+#             2004-2006 Alf Wachsmann <alfw@slac.stanford.edu>
 #                       and Elizabeth Cassell
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #------------------------------------------------------------------------------
+
 use strict;
 use English;
 
@@ -16,7 +17,7 @@ use Config;
 my $archname = $Config{'archname'};
 # if ($archname =~ /thread/i) { die "Threaded Perl is not supported ...\n"; }
 
-my $VERSION = "0.2.2";
+my $VERSION = "0.3.1";
 
 # give me the path to the AFS system libraries
 # used to build the AFS extension module
@@ -30,12 +31,9 @@ my $AFSPath;
 if (defined $ENV{AFSPATH}) {
   $AFSPath = $ENV{AFSPATH};
 } else {
-  $AFSPath = $guess_path || 'unknown';
-  print "\nPath to the AFS installation (libraries, binaries, \n";
-  print "header files) to be used for this installation? \t [$AFSPath] ";
-  chomp(my $answer = <STDIN>);
-  $AFSPath = $answer if $answer;
-  print "\n";
+  my $mess = "\nPath to the AFS installation (libraries, binaries, \n"
+           . "header files) to be used for this installation? \t$AFSPath] ";
+  $AFSPath = prompt($mess, $guess_path);
 }
 
 $AFSPath =~ s\/$\\;
@@ -43,6 +41,8 @@ $AFSPath =~ s\/$\\;
 # find out the AFS version of the AFS system libraries
 open FILE, ">fotav.c";
 print FILE <<'EOF';
+
+#include <stdio.h>
 
 int main(void) {
   extern char *AFSVersion;
@@ -72,6 +72,7 @@ elsif ($version =~ /3.6/)   { $d_flag = 'AFS 3.6'; }
 elsif ($version =~ /1.0/)   { $d_flag = 'OpenAFS 1.0'; }
 elsif ($version =~ /1.1/)   { $d_flag = 'OpenAFS 1.1'; }
 elsif ($version =~ /1.2/)   { $d_flag = 'OpenAFS 1.2'; }
+elsif ($version =~ /1.4/)   { $d_flag = 'OpenAFS 1.4'; }
 elsif ($version =~ /devel/) { $d_flag = 'OpenAFS devel'; }
 
 if ($version =~ /openafs/)  { $a_flag = '-DOpenAFS'; }
@@ -86,7 +87,21 @@ if(version("openafs 1.2.5", $version) > 0) {
 if(version("openafs 1.0.3", $version) > 0) {
   $a_flag .= " -DUSE_VOTEXDEBUG";
 }
-
+if($version =~ /devel/) {
+  $a_flag .= " -DNOAFS_XSTATSCOLL_CBSTATS";
+}
+if($version =~ /openafs 1.4.0/) {
+  $a_flag .= " -DNOAFS_XSTATSCOLL_CBSTATS";
+}
+if ($version =~ /openafs 1.4.1-rc/) {
+  $a_flag .= " -DNOAFS_XSTATSCOLL_CBSTATS";
+}
+if ($version =~ /openafs 1.4.2/) {
+  $a_flag .= " -DEXT2=extern";
+}
+if ($version !~ /1.4./) {
+  $a_flag .= " -DNOAFS_XSTATSCOLL_CBSTATS";
+}
 $version = $d_flag;
 $d_flag =~ tr/\. /__/;
 $d_flag = '-D' . $d_flag;
@@ -159,8 +174,9 @@ if ($Config{osname} =~ /aix/) {
   $MakefileArgs{LIBS}->[0] .= " -R$AFSPath/lib";
 } elsif ($Config{osname} =~ /linux/) {
   $MakefileArgs{LIBS}->[0] .= ' -lresolv';
+###  $MakefileArgs{LDFLAGS} = "-Wl,-rpath -Wl,$AFSPath/lib";
 } elsif ($Config{osname} =~ /darwin/) {
-  $MakefileArgs{LDDLFLAGS} = $Config{lddlflags} . ' -multiply_defined suppress -read_only_relocs suppress';
+  $MakefileArgs{LDDLFLAGS} = $Config{lddlflags} . ' -lresolv -multiply_defined suppress -read_only_relocs suppress';
 }
 # elsif ($Config{osname} =~ /dec_osf/) {
 # # hier fehlt noch was !!!!!
@@ -179,7 +195,7 @@ my $command = "\'s#-lutil#$AFSPath/lib/afs/util.a#\'";
 system("perl -p -i.bak -e $command Makefile") unless -f "$AFSPath/lib/afs/libutil.a";
 
 # change the library name of the AFS system library "vlib.a"
-my $command = "\'s#-lvlib#$AFSPath/lib/afs/vlib.a#\'";
+$command = "\'s#-lvlib#$AFSPath/lib/afs/vlib.a#\'";
 system("perl -p -i.bak -e $command Makefile") unless -f "$AFSPath/lib/afs/libvlib.a";
 
 # change the library name of the AFS system library "libcom_err"

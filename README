@@ -1,19 +1,20 @@
-This is the README file for the Perl extension module AFS::Monitor (Version 0.2.2) 
+This is the README file for the Perl extension module AFS::Monitor (Version 0.3.1) 
 
 
 DESCRIPTION
-    The AFS::Monitor module bundle is a dynamically loadable extension to
+    The AFS::Monitor module is a dynamically loadable extension to
     Perl. It gives the AFS user and administrator access to most of the
-    AFS moitoring and debugging functions, allowing you to make these calls
+    AFS monitoring and debugging functions, allowing you to make these calls
     directly from Perl, rather than processing the output of a command.
 
 
 REQUIREMENTS
-    Before you can build the AFS module bundle you need to have the
+    Before you can build the AFS module you need to have the
     following installed on your system:
 
         * Perl 5.6.1 or newer (haven't tested on any older versions)
-        * system libraries for IBM AFS 3.6 or OpenAFS 1.2.x and newer
+        * system libraries for OpenAFS 1.2.x and newer (it is unknown
+	whether IBM AFS wil work)
 
 
 COMPATIBILITY
@@ -33,11 +34,11 @@ BUILDING & INSTALLING
     should be straightforward. The AFS::Monitor module is distributed as a
     single gzipped tar archive file:
 
-            AFS-Monitor-0.2.2.tar.gz
+            AFS-Monitor-0.3.0.tar.gz
 
     Unpack the archive to create an AFS-Monitor installation directory:
 
-        tar zxvf AFS-Monitor-0.2.2.tar.gz
+        tar zxvf AFS-Monitor-0.3.0.tar.gz
 
     'cd' into that directory, make, test and install the modules. You
     have to specify the location of the AFS system libraries. While
@@ -49,7 +50,7 @@ BUILDING & INSTALLING
 
     This is the sequence of commands to build the modules:
 
-        cd AFS-Monitor-0.2.2
+        cd AFS-Monitor-0.3.0
 
         [1] this step is optional
         setenv AFSPATH 'path_to_the_AFS_system_libraries' # tcsh-shell
@@ -94,8 +95,8 @@ CREDITS
 
 
 COPYRIGHT AND DISCLAIMER
-    Copyright 2004, 2005 Alf Wachsmann <alfw@slac.stanford.edu> and
-                         Elizabeth Cassell <e_a_c@mailsnare.net>
+    Copyright 2004-2006 Alf Wachsmann <alfw@slac.stanford.edu> and
+                        Elizabeth Cassell <e_a_c@mailsnare.net>
     All rights reserved.
 
     Most of the explanations in the documentation are taken from the original

@@ -2,7 +2,7 @@
  *
  * AFS.xs - AFS extensions for Perl
  *
- * RCS-Id: @(#)$Id: Monitor.xs,v 1.1 2004/10/22 15:04:41 alfw Exp $
+ * RCS-Id: @(#)$Id: Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $
  *
  * Copyright (c) 2003, International Business Machines Corporation and others.
  *
@@ -11,8 +11,8 @@
  * directory or online at http://www.openafs.org/dl/license10.html
  *
  * Contributors
- *         2004: Elizabeth Cassell <e_a_c@mailsnare.net>
- *               Alf Wachsmann <alfw@slac.stanford.edu>
+ *         2004-2006: Elizabeth Cassell <e_a_c@mailsnare.net>
+ *                    Alf Wachsmann <alfw@slac.stanford.edu>
  *
  * The code for the original library were mainly taken from the AFS
  * source distribution, which comes with this message:
@@ -43,6 +43,9 @@
 #include "afsmon-labels.h"  /* labels for afsmonitor variables */
 
 #include <afs/fsprobe.h>
+
+/* from volser/volser_prototypes.h */
+extern void MapPartIdIntoName(afs_int32 partId, char *partName);
 
 
 #if defined(AFS_3_4) || defined(AFS_3_5)
@@ -113,6 +116,12 @@ set_code(code)
 
 /* start of rxdebug helper functions */
 
+
+/*
+ * from src/rxdebug/rxdebug.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 static short
 rxdebug_PortNumber(aport)
    register char *aport;
@@ -130,23 +139,32 @@ rxdebug_PortNumber(aport)
    return htons(total);
 }
 
+
+/*
+ * from src/rxdebug/rxdebug.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 static short
-rxdebug_PortName(aname)
-   register char *aname;
+rxdebug_PortName(char *aname)
 {
    register struct servent *ts;
-   ts = getservbyname(aname, (char *)0);
+   ts = getservbyname(aname, (char *) NULL);
    if (!ts)
       return -1;
    return ts->s_port;   /* returns it in network byte order */
 }
 
-/* replaces rx_PrintTheseStats() in original c code. */
-/* places stats in RXSTATS instead of printing them */
+
+/*
+ * replaces rx_PrintTheseStats() in original c code.
+ * places stats in RXSTATS instead of printing them
+ * from src/rx/rx.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 static void
-myPrintTheseStats(RXSTATS, rxstats)
-   HV *RXSTATS;
-   struct rx_stats rxstats;
+myPrintTheseStats(HV *RXSTATS, struct rx_stats *rxstats)
 {
    HV *PACKETS;
    HV *TYPE;
@@ -156,30 +174,30 @@ myPrintTheseStats(RXSTATS, rxstats)
    int i;
    int num_unused;
 
-   hv_store(RXSTATS, "packetRequests", 14, newSViv(rxstats.packetRequests),
+   hv_store(RXSTATS, "packetRequests", 14, newSViv(rxstats->packetRequests),
             0);
 
    hv_store(RXSTATS, "receivePktAllocFailures", 23,
-            newSViv(rxstats.receivePktAllocFailures), 0);
+            newSViv(rxstats->receivePktAllocFailures), 0);
    hv_store(RXSTATS, "receiveCbufPktAllocFailures", 27,
-            newSViv(rxstats.receiveCbufPktAllocFailures), 0);
+            newSViv(rxstats->receiveCbufPktAllocFailures), 0);
    hv_store(RXSTATS, "sendPktAllocFailures", 20,
-            newSViv(rxstats.sendPktAllocFailures), 0);
+            newSViv(rxstats->sendPktAllocFailures), 0);
    hv_store(RXSTATS, "sendCbufPktAllocFailures", 24,
-            newSViv(rxstats.sendCbufPktAllocFailures), 0);
+            newSViv(rxstats->sendCbufPktAllocFailures), 0);
    hv_store(RXSTATS, "specialPktAllocFailures", 23,
-            newSViv(rxstats.specialPktAllocFailures), 0);
+            newSViv(rxstats->specialPktAllocFailures), 0);
 
-   hv_store(RXSTATS, "socketGreedy", 12, newSViv(rxstats.socketGreedy), 0);
+   hv_store(RXSTATS, "socketGreedy", 12, newSViv(rxstats->socketGreedy), 0);
    hv_store(RXSTATS, "bogusPacketOnRead", 17,
-            newSViv(rxstats.bogusPacketOnRead), 0);
-   hv_store(RXSTATS, "bogusHost", 9, newSViv(rxstats.bogusHost), 0);
-   hv_store(RXSTATS, "noPacketOnRead", 14, newSViv(rxstats.noPacketOnRead),
+            newSViv(rxstats->bogusPacketOnRead), 0);
+   hv_store(RXSTATS, "bogusHost", 9, newSViv(rxstats->bogusHost), 0);
+   hv_store(RXSTATS, "noPacketOnRead", 14, newSViv(rxstats->noPacketOnRead),
             0);
    hv_store(RXSTATS, "noPacketBuffersOnRead", 21,
-            newSViv(rxstats.noPacketBuffersOnRead), 0);
-   hv_store(RXSTATS, "selects", 7, newSViv(rxstats.selects), 0);
-   hv_store(RXSTATS, "sendSelects", 11, newSViv(rxstats.sendSelects), 0);
+            newSViv(rxstats->noPacketBuffersOnRead), 0);
+   hv_store(RXSTATS, "selects", 7, newSViv(rxstats->selects), 0);
+   hv_store(RXSTATS, "sendSelects", 11, newSViv(rxstats->sendSelects), 0);
 
 
    PACKETS = newHV();
@@ -188,8 +206,8 @@ myPrintTheseStats(RXSTATS, rxstats)
    for (i = 0; i < RX_N_PACKET_TYPES; i++) {
       char *packet_type = rx_packetTypes[i];
       TYPE = newHV();
-      hv_store(TYPE, "packetsRead", 11, newSViv(rxstats.packetsRead[i]), 0);
-      hv_store(TYPE, "packetsSent", 11, newSViv(rxstats.packetsSent[i]), 0);
+      hv_store(TYPE, "packetsRead", 11, newSViv(rxstats->packetsRead[i]), 0);
+      hv_store(TYPE, "packetsSent", 11, newSViv(rxstats->packetsSent[i]), 0);
       if (packet_type == "unused") {
          /* rename "unused" types */
          /* can't have several entries in a hash with same name */
@@ -203,59 +221,59 @@ myPrintTheseStats(RXSTATS, rxstats)
    }
    hv_store(RXSTATS, "packets", 7, newRV_inc((SV *) (PACKETS)), 0);
 
-   hv_store(RXSTATS, "dataPacketsRead", 15, newSViv(rxstats.dataPacketsRead),
+   hv_store(RXSTATS, "dataPacketsRead", 15, newSViv(rxstats->dataPacketsRead),
             0);
-   hv_store(RXSTATS, "ackPacketsRead", 14, newSViv(rxstats.ackPacketsRead),
+   hv_store(RXSTATS, "ackPacketsRead", 14, newSViv(rxstats->ackPacketsRead),
             0);
-   hv_store(RXSTATS, "dupPacketsRead", 14, newSViv(rxstats.dupPacketsRead),
+   hv_store(RXSTATS, "dupPacketsRead", 14, newSViv(rxstats->dupPacketsRead),
             0);
    hv_store(RXSTATS, "spuriousPacketsRead", 19,
-            newSViv(rxstats.spuriousPacketsRead), 0);
+            newSViv(rxstats->spuriousPacketsRead), 0);
    hv_store(RXSTATS, "ignorePacketDally", 17,
-            newSViv(rxstats.ignorePacketDally), 0);
+            newSViv(rxstats->ignorePacketDally), 0);
 
-   hv_store(RXSTATS, "pingPacketsSent", 15, newSViv(rxstats.pingPacketsSent),
+   hv_store(RXSTATS, "pingPacketsSent", 15, newSViv(rxstats->pingPacketsSent),
             0);
    hv_store(RXSTATS, "abortPacketsSent", 16,
-            newSViv(rxstats.abortPacketsSent), 0);
-   hv_store(RXSTATS, "busyPacketsSent", 15, newSViv(rxstats.busyPacketsSent),
+            newSViv(rxstats->abortPacketsSent), 0);
+   hv_store(RXSTATS, "busyPacketsSent", 15, newSViv(rxstats->busyPacketsSent),
             0);
 
-   hv_store(RXSTATS, "ackPacketsSent", 14, newSViv(rxstats.ackPacketsSent),
+   hv_store(RXSTATS, "ackPacketsSent", 14, newSViv(rxstats->ackPacketsSent),
             0);
-   hv_store(RXSTATS, "dataPacketsSent", 15, newSViv(rxstats.dataPacketsSent),
+   hv_store(RXSTATS, "dataPacketsSent", 15, newSViv(rxstats->dataPacketsSent),
             0);
    hv_store(RXSTATS, "dataPacketsReSent", 17,
-            newSViv(rxstats.dataPacketsReSent), 0);
+            newSViv(rxstats->dataPacketsReSent), 0);
    hv_store(RXSTATS, "dataPacketsPushed", 17,
-            newSViv(rxstats.dataPacketsPushed), 0);
+            newSViv(rxstats->dataPacketsPushed), 0);
    hv_store(RXSTATS, "ignoreAckedPacket", 17,
-            newSViv(rxstats.ignoreAckedPacket), 0);
+            newSViv(rxstats->ignoreAckedPacket), 0);
 
-   hv_store(RXSTATS, "netSendFailures", 15, newSViv(rxstats.netSendFailures),
+   hv_store(RXSTATS, "netSendFailures", 15, newSViv(rxstats->netSendFailures),
             0);
-   hv_store(RXSTATS, "fatalErrors", 11, newSViv(rxstats.fatalErrors), 0);
+   hv_store(RXSTATS, "fatalErrors", 11, newSViv(rxstats->fatalErrors), 0);
 
-   hv_store(RXSTATS, "nServerConns", 12, newSViv(rxstats.nServerConns), 0);
-   hv_store(RXSTATS, "nClientConns", 12, newSViv(rxstats.nClientConns), 0);
-   hv_store(RXSTATS, "nPeerStructs", 12, newSViv(rxstats.nPeerStructs), 0);
-   hv_store(RXSTATS, "nCallStructs", 12, newSViv(rxstats.nCallStructs), 0);
+   hv_store(RXSTATS, "nServerConns", 12, newSViv(rxstats->nServerConns), 0);
+   hv_store(RXSTATS, "nClientConns", 12, newSViv(rxstats->nClientConns), 0);
+   hv_store(RXSTATS, "nPeerStructs", 12, newSViv(rxstats->nPeerStructs), 0);
+   hv_store(RXSTATS, "nCallStructs", 12, newSViv(rxstats->nCallStructs), 0);
    hv_store(RXSTATS, "nFreeCallStructs", 16,
-            newSViv(rxstats.nFreeCallStructs), 0);
+            newSViv(rxstats->nFreeCallStructs), 0);
 
-   hv_store(RXSTATS, "nRttSamples", 11, newSViv(rxstats.nRttSamples), 0);
+   hv_store(RXSTATS, "nRttSamples", 11, newSViv(rxstats->nRttSamples), 0);
 
    TOTALRTT = newHV();
-   hv_store(TOTALRTT, "sec", 3, newSViv(rxstats.totalRtt.sec), 0);
-   hv_store(TOTALRTT, "usec", 4, newSViv(rxstats.totalRtt.usec), 0);
+   hv_store(TOTALRTT, "sec", 3, newSViv(rxstats->totalRtt.sec), 0);
+   hv_store(TOTALRTT, "usec", 4, newSViv(rxstats->totalRtt.usec), 0);
    hv_store(RXSTATS, "totalRtt", 8, newRV_inc((SV *) (TOTALRTT)), 0);
    MINRTT = newHV();
-   hv_store(MINRTT, "sec", 3, newSViv(rxstats.minRtt.sec), 0);
-   hv_store(MINRTT, "usec", 4, newSViv(rxstats.minRtt.usec), 0);
+   hv_store(MINRTT, "sec", 3, newSViv(rxstats->minRtt.sec), 0);
+   hv_store(MINRTT, "usec", 4, newSViv(rxstats->minRtt.usec), 0);
    hv_store(RXSTATS, "minRtt", 6, newRV_inc((SV *) (MINRTT)), 0);
    MAXRTT = newHV();
-   hv_store(MAXRTT, "sec", 3, newSViv(rxstats.maxRtt.sec), 0);
-   hv_store(MAXRTT, "usec", 4, newSViv(rxstats.maxRtt.usec), 0);
+   hv_store(MAXRTT, "sec", 3, newSViv(rxstats->maxRtt.sec), 0);
+   hv_store(MAXRTT, "usec", 4, newSViv(rxstats->maxRtt.usec), 0);
    hv_store(RXSTATS, "maxRtt", 6, newRV_inc((SV *) (MAXRTT)), 0);
 
 #if !defined(AFS_PTHREAD_ENV) && !defined(AFS_USE_GETTIMEOFDAY)
@@ -271,7 +289,11 @@ myPrintTheseStats(RXSTATS, rxstats)
 
 /* start of afsmonitor helper functions */
 
-/* from afsmonitor.c */
+/*
+ * from src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 #define FS 1    /* for misc. use */
 #define CM 2    /* for misc. use */
 #define CFG_STR_LEN 80  /* max length of config file fields */
@@ -280,7 +302,12 @@ myPrintTheseStats(RXSTATS, rxstats)
 #define NUM_AFS_STATS_CMPERF_LONGS 40   /* number of longs in struct afs_stats_CMPerf
                                          * excluding up/down stats and fields we dont display */
 
-/* from afsmonitor.h */
+
+/*
+ * from src/afsmonitor/afsmonitor.h
+ *
+ */
+
 #define HOST_NAME_LEN 80    /* length of server/cm names */
 #define THRESH_VAR_NAME_LEN 80  /* THRESHOLD STRUCTURE DEFINITIONS */
 #define THRESH_VAR_LEN 16
@@ -294,8 +321,13 @@ myPrintTheseStats(RXSTATS, rxstats)
 #define FS_NUM_DATA_CATEGORIES 9    /* # of fs categories */
 #define CM_NUM_DATA_CATEGORIES 16   /* # of cm categories */
 
+
 /*
- * from xstat_fs.c:
+ * from src/xstat/xstat_fs.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ *
+
+/*
  * We have to pass a port to Rx to start up our callback listener
  * service, but 7001 is already taken up by the Cache Manager.  So,
  * we make up our own.
@@ -303,7 +335,11 @@ myPrintTheseStats(RXSTATS, rxstats)
 #define XSTAT_FS_CBPORT 7101
 
 
-/* from afsmon-output.c */
+/*
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 static char *fsOpNames[] = {
    "FetchData",
    "FetchACL",
@@ -333,10 +369,15 @@ static char *fsOpNames[] = {
    "BulkStatus",
    "XStatsVersion",
    "GetXStats",
-   "XLookup"
+   "XLookup"	/* from xstat/xstat_cm_test.c */
 };
 
-/* from afsmon-output.c */
+
+/* 
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 static char *cmOpNames[] = {
    "CallBack",
    "InitCallBackState",
@@ -347,14 +388,23 @@ static char *cmOpNames[] = {
    "GetXStats"
 };
 
-/* from afsmon-output.c */
+
+/*
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 static char *xferOpNames[] = {
    "FetchData",
    "StoreData"
 };
 
 
-/* from afsmonitor.h */
+/*
+ * from src/afsmonitor/afsmonitor.h
+ *
+ */
+
 /* structure of each threshold item */
 struct Threshold {
    char itemName[THRESH_VAR_NAME_LEN];  /* field name */
@@ -363,7 +413,12 @@ struct Threshold {
    char handler[256];           /* user provided ovf handler */
 };
 
-/* from afsmonitor.h */
+
+/*
+ * from src/afsmonitor/afsmonitor.h
+ *
+ */
+
 /* structures to store info of hosts to be monitored */
 struct afsmon_hostEntry {
    char hostName[HOST_NAME_LEN];    /* fs or cm host name */
@@ -373,7 +428,11 @@ struct afsmon_hostEntry {
 };
 
 
-/* from afsmonitor.h */
+/*
+ * from src/afsmonitor/afsmonitor.h
+ *
+ */
+
 /* structures to store statistics in a format convenient to dump to the
 screen */
 /* for file servers */
@@ -395,13 +454,15 @@ struct cm_Display_Data {
 
 
 
-/* from afsmonitor.c */
+/*
+ * from src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 /* wouldn't compile without this, but it wasn't in original afsmonitor.c */
 #if !defined(__USE_GNU) && !defined(__APPLE_CC__)
 char *
-strcasestr(s1, s2)
-   char *s1;
-   char *s2;
+strcasestr(char *s1, char *s2)
 {
    char *ptr;
    int len1, len2;
@@ -425,10 +486,13 @@ strcasestr(s1, s2)
 #endif           /* __USE_GNU */
 
 
-/* from afsmonitor.c */
+/*
+ * from src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 struct hostent *
-GetHostByName(name)
-   char *name;
+GetHostByName(char *name)
 {
    struct hostent *he;
 #ifdef AFS_SUN5_ENV
@@ -438,7 +502,7 @@ GetHostByName(name)
    he = gethostbyname(name);
 #ifdef AFS_SUN5_ENV
    /* On solaris the above does not resolve hostnames to full names */
-   if (he != (struct hostent *)0) {
+   if (he != NULL) {
       memcpy(ip_addr, he->h_addr, he->h_length);
       he = gethostbyaddr(ip_addr, he->h_length, he->h_addrtype);
    }
@@ -447,14 +511,16 @@ GetHostByName(name)
 }
 
 
-
-/* my_execute_thresh_handler() */
+/*
+ * from src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
 
 /*
  * Constructs a string to pass back to Perl for easy execution of the threshold handler.
  * DOES NOT execute the threshold handler.
  *
- * from afsmonitor.c:
+ * from src/afsmonitor/afsmonitor.c
  *
  * int
  * execute_thresh_handler(a_handler, a_hostName, a_hostType,
@@ -468,9 +534,9 @@ GetHostByName(name)
  */
 
 int
-my_execute_thresh_handler(a_handler, a_hostName, a_hostType,
-                          a_threshName, a_threshValue, a_actValue, ENTRY,
-                          buffer)
+my_execute_thresh_handler(a_handler, a_hostName, a_hostType, a_threshName,
+                          a_threshValue, a_actValue,
+                          ENTRY, buffer)
    char *a_handler;             /* ptr to handler function + args */
    char *a_hostName;            /* host name for which threshold crossed */
    int a_hostType;              /* fs or cm ? */
@@ -546,17 +612,9 @@ my_execute_thresh_handler(a_handler, a_hostName, a_hostType,
 }   /* my_execute_thresh_handler() */
 
 
-
-
-
-/* my_insert_FS() */
-
 /*
- * from afsmonitor.c:
- *
- * int
- * insert_FS( a_hostName )
- * char *a_hostName;
+ * from src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -572,17 +630,17 @@ my_insert_FS(a_hostName, nameList, last_hostEntry)
       return (-1);
    curr_item = (struct afsmon_hostEntry *)
       malloc(sizeof(struct afsmon_hostEntry));
-   if (curr_item == (struct afsmon_hostEntry *)0) {
+   if (curr_item == (struct afsmon_hostEntry *) NULL) {
       warn("Failed to allocate space for nameList\n");
       return (-1);
    }
 
    strncpy(curr_item->hostName, a_hostName, CFG_STR_LEN);
-   curr_item->next = (struct afsmon_hostEntry *)0;
+   curr_item->next = (struct afsmon_hostEntry *) NULL;
    curr_item->numThresh = 0;
-   curr_item->thresh = (struct Threshold *)0;
+   curr_item->thresh = (struct Threshold *) NULL;
 
-   if ((*nameList) == (struct afsmon_hostEntry *)0)
+   if ((*nameList) == (struct afsmon_hostEntry *) NULL)
       (*nameList) = curr_item;
    else
       prev_item->next = curr_item;
@@ -600,11 +658,8 @@ my_insert_FS(a_hostName, nameList, last_hostEntry)
 /* my_insert_CM() */
 
 /*
- * from afsmonitor.c:
- *
- * int
- * insert_CM( a_hostName )
- * char *a_hostName;
+ * from src/afsmonitor/afsmonitor.c:
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -621,17 +676,17 @@ my_insert_CM(a_hostName, nameList, last_hostEntry)
 
    curr_item = (struct afsmon_hostEntry *)
       malloc(sizeof(struct afsmon_hostEntry));
-   if (curr_item == (struct afsmon_hostEntry *)0) {
+   if (curr_item == (struct afsmon_hostEntry *) NULL) {
       warn("Failed to allocate space for nameList\n");
       return (-1);
    }
 
    strncpy(curr_item->hostName, a_hostName, CFG_STR_LEN);
-   curr_item->next = (struct afsmon_hostEntry *)0;
+   curr_item->next = (struct afsmon_hostEntry *) NULL;
    curr_item->numThresh = 0;
-   curr_item->thresh = (struct Threshold *)0;
+   curr_item->thresh = NULL;
 
-   if ((*nameList) == (struct afsmon_hostEntry *)0) {
+   if ((*nameList) == (struct afsmon_hostEntry *) NULL) {
       (*nameList) = curr_item;
    }
    else {
@@ -648,16 +703,11 @@ my_insert_CM(a_hostName, nameList, last_hostEntry)
 
 
 
-/* my_parse_threshEntry() */
-
 /*
  * parses a threshold entry line in the config file.
  *
- * from afsmonitor.c:
- *
- * int
- * parse_threshEntry(a_line)
- * char *a_line;
+ * from src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -670,7 +720,7 @@ my_parse_threshEntry(a_line, global_fsThreshCount, global_cmThreshCount,
    int lastHostType;            /* points to an integer specifying whether the last host was fs or cm */
    char *buffer;                /* to return error messages in */
 {
-   char opcode[CFG_STR_LEN];    /* specifies type of config entry */
+   char opcode[CFG_STR_LEN];    /* junk characters */
    char arg1[CFG_STR_LEN];      /* hostname or qualifier (fs/cm?)  */
    char arg2[CFG_STR_LEN];      /* threshold variable */
    char arg3[CFG_STR_LEN];      /* threshold value */
@@ -743,16 +793,9 @@ my_parse_threshEntry(a_line, global_fsThreshCount, global_cmThreshCount,
 
 
 
-/* my_parse_showEntry() */
-
 /*
- * parses a line of the config file containing a "show" entry.
- *
- * from afsmonitor.c:
- *
- * int
- * parse_showEntry(a_line)
- * char *a_line;
+ * from src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -818,8 +861,8 @@ my_parse_showEntry(a_line, fs_showDefault, cm_showDefault, fs_showFlags,
       /* if it is a section/group name, find it in the fs_categories[] array */
 
       found = 0;
-      if (strcasestr(arg2, "_section") != (char *)NULL ||
-          strcasestr(arg2, "_group") != (char *)NULL) {
+      if (strcasestr(arg2, "_section") != (char *)NULL
+          || strcasestr(arg2, "_group") != (char *)NULL) {
          idx = 0;
          while (idx < FS_NUM_DATA_CATEGORIES) {
             sscanf(fs_categories[idx], "%s %d %d", catName, &fromIdx, &toIdx);
@@ -836,7 +879,9 @@ my_parse_showEntry(a_line, fs_showDefault, cm_showDefault, fs_showFlags,
          }
       }
 
-      /* if it is a group name */
+        /* if it is a group name, read its start/end indices and fill in the
+         * fs_Display_map[]. */
+
       if (strcasestr(arg2, "_group") != (char *)NULL) {
 
          if (fromIdx < 0 || toIdx < 0 || fromIdx > NUM_FS_STAT_ENTRIES ||
@@ -855,7 +900,7 @@ my_parse_showEntry(a_line, fs_showDefault, cm_showDefault, fs_showFlags,
          while (idx < FS_NUM_DATA_CATEGORIES && numGroups) {
             sscanf(fs_categories[idx], "%s %d %d", catName, &fromIdx, &toIdx);
 
-            if (strcasestr(catName, "_group") != (char *)0) {
+            if (strcasestr(catName, "_group") != (char *) NULL) {
                if (fromIdx < 0 || toIdx < 0 || fromIdx > NUM_FS_STAT_ENTRIES
                    || toIdx > NUM_FS_STAT_ENTRIES)
                   return (-4);
@@ -887,8 +932,9 @@ my_parse_showEntry(a_line, fs_showDefault, cm_showDefault, fs_showFlags,
          }
       } /* its a variable name */
 
-   }    /* it is an fs entry */
+   }
 
+    /* it is an fs entry */
    if (strcasecmp(arg1, "cm") == 0) {   /* its a Cache Manager entry */
 
       /* mark that we have to show only what the user wants */
@@ -897,8 +943,8 @@ my_parse_showEntry(a_line, fs_showDefault, cm_showDefault, fs_showFlags,
       /* if it is a section/group name, find it in the cm_categories[] array */
 
       found = 0;
-      if (strcasestr(arg2, "_section") != (char *)NULL ||
-          strcasestr(arg2, "_group") != (char *)NULL) {
+      if (strcasestr(arg2, "_section") != (char *)NULL
+          || strcasestr(arg2, "_group") != (char *)NULL) {
          idx = 0;
          while (idx < CM_NUM_DATA_CATEGORIES) {
             sscanf(cm_categories[idx], "%s %d %d", catName, &fromIdx, &toIdx);
@@ -919,8 +965,8 @@ my_parse_showEntry(a_line, fs_showDefault, cm_showDefault, fs_showFlags,
 
       if (strcasestr(arg2, "_group") != (char *)NULL) {
 
-         if (fromIdx < 0 || toIdx < 0 || fromIdx > NUM_CM_STAT_ENTRIES ||
-             toIdx > NUM_CM_STAT_ENTRIES)
+         if (fromIdx < 0 || toIdx < 0 || fromIdx > NUM_CM_STAT_ENTRIES
+             || toIdx > NUM_CM_STAT_ENTRIES)
             return (-10);
          for (j = fromIdx; j <= toIdx; j++) {
             cm_showFlags[j] = 1;
@@ -937,7 +983,7 @@ my_parse_showEntry(a_line, fs_showDefault, cm_showDefault, fs_showFlags,
          while (idx < CM_NUM_DATA_CATEGORIES && numGroups) {
             sscanf(cm_categories[idx], "%s %d %d", catName, &fromIdx, &toIdx);
 
-            if (strcasestr(catName, "_group") != (char *)0) {
+            if (strcasestr(catName, "_group") != (char *) NULL) {
                if (fromIdx < 0 || toIdx < 0 || fromIdx > NUM_CM_STAT_ENTRIES
                    || toIdx > NUM_CM_STAT_ENTRIES)
                   return (-12);
@@ -976,16 +1022,9 @@ my_parse_showEntry(a_line, fs_showDefault, cm_showDefault, fs_showFlags,
 
 
 
-/* my_parse_hostEntry() */
-
 /*
- * parses a host entry line in the config file
- *
- * from afsmonitor.c:
- *
- * int
- * parse_hostEntry(a_line)
- * char *a_line;
+ * from src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -1017,7 +1056,7 @@ my_parse_hostEntry(a_line, numFS, numCM, lastHostType, last_hostEntry,
    }
 
    he = GetHostByName(arg1);
-   if (he == (struct hostent *)0) {
+   if (he == NULL) {
       sprintf(buffer, "Unable to resolve hostname %s", arg1);
       return (-1);
    }
@@ -1050,19 +1089,9 @@ my_parse_hostEntry(a_line, numFS, numCM, lastHostType, last_hostEntry,
 
 
 
-/* my_store_threshold() */
-
 /*
- * stores a threshold in the appropriate FSnameList or CMnameList entries.
- *
- * from afsmonitor.c:
- *
- * int
- * store_threshold(a_type,a_varName,a_value,a_handler)
- * int a_type;
- * char *a_varName;
- * char *a_value;
- * char *a_handler;
+ * from src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -1201,14 +1230,9 @@ my_store_threshold(a_type, a_varName, a_value, a_handler, global_TC,
 
 
 
-/* my_check_thresholds() */
-
 /*
- * Checks for values that exceed their thresholds, and stores the information
- * into the appropriate data structure to be returned to perl.
- * I condensed both the fs and cm versions of this function into one.
- *
- * from afsmonitor.c:
+ * from /src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  *
  * int
  * check_fs_thresholds(a_hostEntry, a_Data)
@@ -1331,17 +1355,9 @@ my_check_thresholds(a_hostEntry, HOSTINFO, type, buffer)
 
 
 
-
-/* my_process_config_file() */
-
 /*
- * process the config file.
- *
- * from afsmonitor.c:
- *
- * int
- * process_config_file(a_config_filename)
- * char *a_config_filename;
+ * from src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -1386,7 +1402,7 @@ my_process_config_file(a_config_filename, numFS, numCM, lastHostType,
 
    /* open config file */
    configFD = fopen(a_config_filename, "r");
-   if (configFD == (FILE *) 0) {
+   if (configFD == (FILE *) NULL) {
       sprintf(buff1, "Failed to open config file %s", a_config_filename);
       BSETCODE(5, buff1);
       return (-1);
@@ -1505,7 +1521,7 @@ my_process_config_file(a_config_filename, numFS, numCM, lastHostType,
       if (curr_host->numThresh) {
          numBytes = curr_host->numThresh * sizeof(struct Threshold);
          curr_host->thresh = (struct Threshold *)malloc(numBytes);
-         if (curr_host->thresh == (struct Threshold *)0) {
+         if (curr_host->thresh == (struct Threshold *) NULL) {
             sprintf(buff1, "Memory Allocation error 1");
             BSETCODE(25, buff1);
             return (-1);
@@ -1525,7 +1541,7 @@ my_process_config_file(a_config_filename, numFS, numCM, lastHostType,
       if (curr_host->numThresh) {
          numBytes = curr_host->numThresh * sizeof(struct Threshold);
          curr_host->thresh = (struct Threshold *)malloc(numBytes);
-         if (curr_host->thresh == (struct Threshold *)0) {
+         if (curr_host->thresh == (struct Threshold *) NULL) {
             sprintf(buff1, "Memory Allocation error 2");
             BSETCODE(35, buff1);
             return (-1);
@@ -1617,16 +1633,9 @@ my_process_config_file(a_config_filename, numFS, numCM, lastHostType,
 
 
 
-/* my_Print_fs_OpTiming() */
-
 /*
- * Prints the contents of an RPC op timing structure to the given file
- *
- * from afsmon-output.c:
- *
- * void Print_fs_OpTiming(a_opIdx, a_opTimeP)
- *     int a_opIdx;
- *     struct fs_stats_opTimingData *a_opTimeP;
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 void
@@ -1645,16 +1654,9 @@ my_Print_fs_OpTiming(a_opIdx, a_opTimeP, fs_outFD)
 }   /* my_Print_fs_OpTiming() */
 
 
-
-
-/* my_Print_fs_XferTiming() */
-
 /*
- * from afsmon-output.c:
- *
- * void Print_fs_XferTiming(a_opIdx, a_xferP)
- *     int a_opIdx;
- *     struct fs_stats_xferData *a_xferP;
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 void
@@ -1670,8 +1672,8 @@ my_Print_fs_XferTiming(a_opIdx, a_xferP, fs_outFD)
            a_xferP->sumTime.tv_sec, a_xferP->sumTime.tv_usec,
            a_xferP->minTime.tv_sec, a_xferP->minTime.tv_usec,
            a_xferP->maxTime.tv_sec, a_xferP->maxTime.tv_usec);
-   fprintf(fs_outFD, "\t[bytes: sum=%d, min=%d, max=%d]\n", a_xferP->sumBytes,
-           a_xferP->minBytes, a_xferP->maxBytes);
+   fprintf(fs_outFD, "\t[bytes: sum=%d, min=%d, max=%d]\n",
+           a_xferP->sumBytes, a_xferP->minBytes, a_xferP->maxBytes);
    fprintf(fs_outFD,
            "\t[buckets: 0: %d, 1: %d, 2: %d, 3: %d, 4: %d, 5: %d 6: %d, 7: %d, 8: %d]\n",
            a_xferP->count[0], a_xferP->count[1], a_xferP->count[2],
@@ -1681,14 +1683,9 @@ my_Print_fs_XferTiming(a_opIdx, a_xferP, fs_outFD)
 
 
 
-
-/* my_Print_fs_OverallPerfInfo() */
-
 /*
- * from afsmon-output.c:
- *
- * void Print_fs_OverallPerfInfo(a_ovP)
- *     struct afs_PerfStats *a_ovP;
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 void
@@ -1814,17 +1811,9 @@ my_Print_fs_OverallPerfInfo(a_ovP, fs_outFD)
 
 
 
-
-
-
-
-/* my_Print_fs_DetailedPerfInfo() */
-
 /*
- * from afsmon-output.c:
- *
- * void Print_fs_DetailedPerfInfo(a_detP)
- *     struct fs_stats_DetailedStats *a_detP;
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 void
@@ -1843,17 +1832,9 @@ my_Print_fs_DetailedPerfInfo(a_detP, fs_outFD)
 }   /* my_Print_fs_DetailedPerfInfo() */
 
 
-
-
-
-
-/* my_Print_fs_FullPerfInfo() */
-
 /*
- * from afsmon-output.c:
- *
- * void Print_fs_FullPerfInfo(a_fs_Results)
- * struct xstat_fs_ProbeResults *a_fs_Results;
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 void
@@ -1888,18 +1869,9 @@ my_Print_fs_FullPerfInfo(a_fs_Results, fs_outFD)
 }
 
 
-
-
-
-/* my_afsmon_fsOutput() */
-
 /*
- * from afsmon-output.c:
- *
- * int
- * afsmon_fsOutput(a_outfile, a_detOutput)
- * char *a_outfile;
- * int a_detOutput;
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 void
@@ -1917,7 +1889,7 @@ my_afsmon_fsOutput(a_outfile, a_detOutput, xstat_fs_Results)
    FILE *fs_outFD = 0;
 
    fs_outFD = fopen(a_outfile, "a");
-   if (fs_outFD == (FILE *) 0) {
+   if (fs_outFD == (FILE *) NULL) {
       warn("failed to open output file %s", a_outfile);
       return;
    }
@@ -1960,15 +1932,9 @@ my_afsmon_fsOutput(a_outfile, a_detOutput, xstat_fs_Results)
 
 
 
-/* my_fs_Results_ltoa() */
-
 /*
- * from afsmonitor.c:
- *
- * int
- * fs_Results_ltoa(a_fsData,a_fsResults)
- * struct fs_Display_Data *a_fsData;
- * struct xstat_fs_ProbeResults *a_fsResults;
+ * from src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -2081,14 +2047,9 @@ my_fs_Results_ltoa(a_fsData, a_fsResults)
 
 
 
-/* fs_Results_to_Hash() */
-/* fs_Results_to_Hash() */
 void
-fs_Results_to_Hash(fsData, HOSTINFO, showFlags, showDefault)
-   struct fs_Display_Data *fsData;
-   HV *HOSTINFO;
-   short *showFlags;
-   int showDefault;
+fs_Results_to_Hash(struct fs_Display_Data *fsData, HV *HOSTINFO,
+                   short *showFlags, int showDefault)
 {
    int secidx;
    int grpidx;
@@ -2136,15 +2097,9 @@ fs_Results_to_Hash(fsData, HOSTINFO, showFlags, showDefault)
 
 
 
-
-/* my_save_FS_data_forDisplay() */
-
 /*
- * from afsmonitor.c:
- *
- * int
- * save_FS_data_forDisplay(a_fsResults)
- * struct xstat_fs_ProbeResults *a_fsResults;
+ * from src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -2167,7 +2122,7 @@ my_save_FS_data_forDisplay(a_fsResults, HOSTINFO, numFS, FSnameList,
 
    curr_fsDataP =
       (struct fs_Display_Data *)malloc(sizeof(struct fs_Display_Data));
-   if (curr_fsDataP == (struct fs_Display_Data *)0) {
+   if (curr_fsDataP == (struct fs_Display_Data *) NULL) {
       sprintf(buffer, "Memory allocation failure");
       return (-1);
    }
@@ -2225,14 +2180,9 @@ my_save_FS_data_forDisplay(a_fsResults, HOSTINFO, numFS, FSnameList,
 
 
 
-
-/* my_afsmon_FS_Handler() */
-
 /*
- * from afsmonitor.c:
- *
- * int
- * afsmon_FS_Handler()
+ * from src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -2276,12 +2226,9 @@ my_afsmon_FS_Handler(xstat_fs_Results, numFS, conn_idx, buffer, argp)
 
 
 
-/* my_xstat_fs_LWP() */
-
 /*
- * from xstat_fs.c:
- *
- * static void xstat_fs_LWP()
+ * from src/xstat/xstat_fs.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -2308,7 +2255,7 @@ my_xstat_fs_LWP(ProbeHandler, xstat_fs_ConnInfo, xstat_fs_numServers,
    struct xstat_fs_ProbeResults xstat_fs_Results;
    afs_int32 xstat_fsData[AFS_MAX_XSTAT_LONGS];
    xstat_fs_Results.probeTime = 0;
-   xstat_fs_Results.connP = (struct xstat_fs_ConnectionInfo *)0;
+   xstat_fs_Results.connP = (struct xstat_fs_ConnectionInfo *) NULL;
    xstat_fs_Results.collectionNumber = 0;
    xstat_fs_Results.data.AFS_CollData_len = AFS_MAX_XSTAT_LONGS;
    xstat_fs_Results.data.AFS_CollData_val = (afs_int32 *) xstat_fsData;
@@ -2320,7 +2267,7 @@ my_xstat_fs_LWP(ProbeHandler, xstat_fs_ConnInfo, xstat_fs_numServers,
        * Grab the statistics for the current File Server, if the
        * connection is valid.
        */
-      if (curr_conn->rxconn != (struct rx_connection *)0) {
+      if (curr_conn->rxconn != (struct rx_connection *) NULL) {
 
          currCollIDP = xstat_fs_collIDP;
          for (numColls = 0;
@@ -2366,21 +2313,9 @@ my_xstat_fs_LWP(ProbeHandler, xstat_fs_ConnInfo, xstat_fs_numServers,
 }   /* my_xstat_fs_LWP() */
 
 
-
-/* my_xstat_fs_Init() */
-
 /*
- * from xstat_fs.c:
- *
- * int xstat_fs_Init(a_numServers, a_socketArray, a_ProbeFreqInSecs, a_ProbeHandler,
- *                   a_flags, a_numCollections, a_collIDP)
- *     int a_numServers;
- *     struct sockaddr_in *a_socketArray;
- *     int a_ProbeFreqInSecs;
- *     int (*a_ProbeHandler)();
- *     int a_flags;
- *     int a_numCollections;
- *     afs_int32 *a_collIDP;
+ * from src/xstat/xstat_fs.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -2401,7 +2336,7 @@ my_xstat_fs_Init(int (*ProbeHandler) (), int xstat_fs_numServers,
 
    xstat_fs_ConnInfo = (struct xstat_fs_ConnectionInfo *)
       malloc(xstat_fs_numServers * sizeof(struct xstat_fs_ConnectionInfo));
-   if (xstat_fs_ConnInfo == (struct xstat_fs_ConnectionInfo *)0) {
+   if (xstat_fs_ConnInfo == (struct xstat_fs_ConnectionInfo *) NULL) {
       sprintf(buffer,
               "Can't allocate %d connection info structs (%d bytes)",
               xstat_fs_numServers,
@@ -2424,8 +2359,12 @@ my_xstat_fs_Init(int (*ProbeHandler) (), int xstat_fs_numServers,
       }
    } while (code);
 
-   secobj = (struct rx_securityClass *)rxnull_NewClientSecurityObject();
-   if (secobj == (struct rx_securityClass *)0) {
+    /*
+     * Create a null Rx client security object, to be used by the
+     * probe LWP.
+     */
+   secobj = rxnull_NewClientSecurityObject();
+   if (secobj == (struct rx_securityClass *) NULL) {
       /*Delete already-malloc'ed areas */
       my_xstat_fs_Cleanup(1, xstat_fs_numServers, xstat_fs_ConnInfo, buff2);
       sprintf(buffer, "Can't create probe LWP client security object. %s",
@@ -2445,7 +2384,7 @@ my_xstat_fs_Init(int (*ProbeHandler) (), int xstat_fs_numServers,
              sizeof(struct sockaddr_in));
 
       hostNameFound = hostutil_GetNameByINet(curr_conn->skt.sin_addr.s_addr);
-      if (hostNameFound == (char *)0) {
+      if (hostNameFound == NULL) {
          warn("Can't map Internet address %lu to a string name",
               curr_conn->skt.sin_addr.s_addr);
          curr_conn->hostName[0] = '\0';
@@ -2463,7 +2402,7 @@ my_xstat_fs_Init(int (*ProbeHandler) (), int xstat_fs_numServers,
                                            1,   /*AFS service # */
                                            secobj,  /*Security obj */
                                            0);  /*# of above */
-      if (curr_conn->rxconn == (struct rx_connection *)0) {
+      if (curr_conn->rxconn == (struct rx_connection *) NULL) {
          sprintf(buffer,
                  "Can't create Rx connection to server '%s' (%lu)",
                  curr_conn->hostName, curr_conn->skt.sin_addr.s_addr);
@@ -2494,14 +2433,9 @@ my_xstat_fs_Init(int (*ProbeHandler) (), int xstat_fs_numServers,
 }   /* my_xstat_fs_Init() */
 
 
-
-/* my_xstat_fs_Cleanup() */
-
 /*
- * from xstat_fs.c:
- *
- * int xstat_fs_Cleanup(a_releaseMem)
- *     int a_releaseMem;
+ * from src/xstat/xstat_fs.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -2527,16 +2461,16 @@ my_xstat_fs_Cleanup(a_releaseMem, xstat_fs_numServers, xstat_fs_ConnInfo,
       code = -1;
    }
    else {
-      if (xstat_fs_ConnInfo != (struct xstat_fs_ConnectionInfo *)0) {
+      if (xstat_fs_ConnInfo != (struct xstat_fs_ConnectionInfo *) NULL) {
          /*
           * The xstat_fs connection structure array exists.  Go through
           * it and close up any Rx connections it holds.
           */
          curr_conn = xstat_fs_ConnInfo;
          for (conn_idx = 0; conn_idx < xstat_fs_numServers; conn_idx++) {
-            if (curr_conn->rxconn != (struct rx_connection *)0) {
+            if (curr_conn->rxconn != (struct rx_connection *) NULL) {
                rx_DestroyConnection(curr_conn->rxconn);
-               curr_conn->rxconn = (struct rx_connection *)0;
+               curr_conn->rxconn = (struct rx_connection *) NULL;
             }
             curr_conn++;
          }  /*for each xstat_fs connection */
@@ -2547,7 +2481,7 @@ my_xstat_fs_Cleanup(a_releaseMem, xstat_fs_numServers, xstat_fs_ConnInfo,
     * If asked to, release the space we've allocated.
     */
    if (a_releaseMem) {
-      if (xstat_fs_ConnInfo != (struct xstat_fs_ConnectionInfo *)0)
+      if (xstat_fs_ConnInfo != (struct xstat_fs_ConnectionInfo *) NULL)
          free(xstat_fs_ConnInfo);
    }
 
@@ -2561,14 +2495,11 @@ my_xstat_fs_Cleanup(a_releaseMem, xstat_fs_numServers, xstat_fs_ConnInfo,
 
 
 
-/* my_Print_cm_UpDownStats() */
-
 /*
- * from afsmon-output.c:
- *
- * void Print_cm_UpDownStats(a_upDownP)
- *     struct afs_stats_SrvUpDownInfo *a_upDownP;
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
+
 void
 my_Print_cm_UpDownStats(a_upDownP, cm_outFD)
    struct afs_stats_SrvUpDownInfo *a_upDownP;   /*Ptr to server up/down info */
@@ -2631,17 +2562,9 @@ my_Print_cm_UpDownStats(a_upDownP, cm_outFD)
 }   /* my_Print_cm_UpDownStats() */
 
 
-
-
-/* my_Print_cm_XferTiming() */
-
 /*
- * from afsmon-output.c:
- *
- * void Print_cm_XferTiming(a_opIdx, a_opNames, a_xferP)
- *     int a_opIdx;
- *     char *a_opNames[];
- *     struct afs_stats_xferData *a_xferP;
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 void
@@ -2669,17 +2592,9 @@ my_Print_cm_XferTiming(a_opIdx, a_opNames, a_xferP, cm_outFD)
 }   /* my_Print_cm_XferTiming() */
 
 
-
-
-/* my_Print_cm_ErrInfo() */
-
 /*
- * from afsmon-output.c:
- *
- * void Print_cm_ErrInfo(a_opIdx, a_opNames, a_opErrP)
- *     int a_opIdx;
- *     char *a_opNames[];
- *     struct afs_stats_RPCErrors *a_opErrP;
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 void
@@ -2700,16 +2615,9 @@ my_Print_cm_ErrInfo(a_opIdx, a_opNames, a_opErrP, cm_outFD)
 
 
 
-
-/* my_Print_cm_OpTiming() */
-
 /*
- * from afsmon-output.c:
- *
- * void Print_cm_OpTiming(a_opIdx, a_opNames, a_opTimeP)
- *     int a_opIdx;
- *     char *a_opNames[];
- *     struct afs_stats_opTimingData *a_opTimeP;
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 void
@@ -2731,14 +2639,9 @@ my_Print_cm_OpTiming(a_opIdx, a_opNames, a_opTimeP, cm_outFD)
 
 
 
-
-/* my_Print_cm_OverallPerfInfo() */
-
 /*
- * from afsmon-output.c:
- *
- * void Print_fs_OverallPerfInfo(a_ovP)
- *     struct afs_PerfStats *a_ovP;
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 void
@@ -2812,14 +2715,9 @@ my_Print_cm_OverallPerfInfo(a_ovP, cm_outFD)
 }   /* my_Print_cm_OverallPerfInfo() */
 
 
-
-/* my_Print_cm_RPCPerfInfo() */
-
 /*
- * from afsmon-output.c:
- *
- * void Print_cm_RPCPerfInfo(a_rpcP)
- *     struct afs_stats_RPCOpInfo *a_rpcP;
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 void
@@ -2857,14 +2755,9 @@ my_Print_cm_RPCPerfInfo(a_rpcP, cm_outFD)
 
 
 
-
-/* my_Print_cm_FullPerfInfo() */
-
 /*
- * from afsmon-output.c:
- *
- * void Print_fs_FullPerfInfo(a_fs_Results)
- * struct xstat_fs_ProbeResults *a_fs_Results;
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 void
@@ -2945,16 +2838,9 @@ my_Print_cm_FullPerfInfo(xstat_cm_Results, cm_outFD)
 }   /* my_Print_cm_FullPerfInfo() */
 
 
-
-/* my_afsmon_cmOutput() */
-
 /*
- * from afsmon-output.c:
- *
- * int
- * afsmon_cmOutput(a_outfile, a_detOutput)
- * char *a_outfile;
- * int a_detOutput;
+ * from src/afsmonitor/afsmon-output.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 void
@@ -2972,7 +2858,7 @@ my_afsmon_cmOutput(a_outfile, a_detOutput, xstat_cm_Results)
    FILE *cm_outFD = 0;
 
    cm_outFD = fopen(a_outfile, "a");
-   if (cm_outFD == (FILE *) 0) {
+   if (cm_outFD == (FILE *) NULL) {
       warn("failed to open output file %s", a_outfile);
       return;
    }
@@ -3013,20 +2899,12 @@ my_afsmon_cmOutput(a_outfile, a_detOutput, xstat_cm_Results)
 
 
 
-
-
-/* my_cm_Results_ltoa() */
-
 /*
  * unchanged except for removing debugging print statements at beginning, and one
  * correction (replacing xstat_cm_Results with a_cmResults)
  *
- * from afsmonitor.c:
- *
- * int
- * cm_Results_ltoa(a_cmData,a_cmResults)
- * struct cm_Display_Data *a_cmData;
- * struct xstat_cm_ProbeResults *a_cmResults;
+ * from src/afsmonitor/afsmonitor.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -3256,14 +3134,12 @@ my_cm_Results_ltoa(a_cmData, a_cmResults)
 
 
 
+
 /* cm_Results_to_Hash() */
 
 void
-cm_Results_to_Hash(cmData, HOSTINFO, showFlags, showDefault)
-   struct cm_Display_Data *cmData;
-   HV *HOSTINFO;
-   short *showFlags;
-   int showDefault;
+cm_Results_to_Hash(struct cm_Display_Data *cmData, HV *HOSTINFO,
+                   short *showFlags, int showDefault)
 {
    int secidx;
    int grpidx;
@@ -3311,14 +3187,9 @@ cm_Results_to_Hash(cmData, HOSTINFO, showFlags, showDefault)
 
 
 
-/* my_save_CM_data_forDisplay() */
-
 /*
- * from afsmonitor.c:
- *
- * int
- * save_CM_data_forDisplay(a_cmResults)
- * struct xstat_cm_ProbeResults *a_cmResults;
+ * from src/afsmonitor/afsmonitor.c:
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -3341,7 +3212,7 @@ my_save_CM_data_forDisplay(a_cmResults, HOSTINFO, numCM, CMnameList,
 
    curr_cmDataP =
       (struct cm_Display_Data *)malloc(sizeof(struct cm_Display_Data));
-   if (curr_cmDataP == (struct cm_Display_Data *)0) {
+   if (curr_cmDataP == (struct cm_Display_Data *) NULL) {
       sprintf(buffer, "Memory allocation failure");
       return (-10);
    }
@@ -3394,14 +3265,9 @@ my_save_CM_data_forDisplay(a_cmResults, HOSTINFO, numCM, CMnameList,
 
 
 
-
-/* my_afsmon_CM_Handler() */
-
 /*
- * from afsmonitor.c:
- *
- * int
- * afsmon_CM_Handler()
+ * from src/afsmonitor/afsmonitor.c:
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -3444,12 +3310,10 @@ my_afsmon_CM_Handler(xstat_cm_Results, numCM, conn_idx, buffer, argp)
 
 
 
-/* my_xstat_cm_LWP() */
 
 /*
- * from xstat_cm.c:
- *
- * static void xstat_cm_LWP()
+ * from src/xstat/xstat_cm.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -3476,7 +3340,7 @@ my_xstat_cm_LWP(ProbeHandler, xstat_cm_ConnInfo, xstat_cm_numServers,
    struct xstat_cm_ProbeResults xstat_cm_Results;
    afs_int32 xstat_cmData[AFSCB_MAX_XSTAT_LONGS];
    xstat_cm_Results.probeTime = 0;
-   xstat_cm_Results.connP = (struct xstat_cm_ConnectionInfo *)0;
+   xstat_cm_Results.connP = (struct xstat_cm_ConnectionInfo *) NULL;
    xstat_cm_Results.collectionNumber = 0;
    xstat_cm_Results.data.AFSCB_CollData_len = AFSCB_MAX_XSTAT_LONGS;
    xstat_cm_Results.data.AFSCB_CollData_val = (afs_int32 *) xstat_cmData;
@@ -3488,7 +3352,7 @@ my_xstat_cm_LWP(ProbeHandler, xstat_cm_ConnInfo, xstat_cm_numServers,
        * Grab the statistics for the current File Server, if the
        * connection is valid.
        */
-      if (curr_conn->rxconn != (struct rx_connection *)0) {
+      if (curr_conn->rxconn != (struct rx_connection *) NULL) {
 
          currCollIDP = xstat_cm_collIDP;
          for (numColls = 0;
@@ -3505,8 +3369,7 @@ my_xstat_cm_LWP(ProbeHandler, xstat_cm_ConnInfo, xstat_cm_numServers,
 
             xstat_cm_Results.probeOK =
                RXAFSCB_GetXStats(curr_conn->rxconn,
-                                 clientVersionNumber,
-                                 *currCollIDP,
+                                 clientVersionNumber, *currCollIDP,
                                  &srvVersionNumber,
                                  &(xstat_cm_Results.probeTime),
                                  &(xstat_cm_Results.data));
@@ -3536,21 +3399,9 @@ my_xstat_cm_LWP(ProbeHandler, xstat_cm_ConnInfo, xstat_cm_numServers,
 
 
 
-
-/* my_xstat_cm_Init() */
-
 /*
- * from xstat_cm.c:
- *
- * int xstat_cm_Init(a_numServers, a_socketArray, a_ProbeFreqInSecs,
- *                   a_ProbeHandler, a_flags, a_numCollections, a_collIDP)
- *     int a_numServers;
- *     struct sockaddr_in *a_socketArray;
- *     int a_ProbeFreqInSecs;
- *     int (*a_ProbeHandler)();
- *     int a_flags;
- *     int a_numCollections;
- *     afs_int32 *a_collIDP;
+ * from src/xstat/xstat_cm.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
@@ -3570,7 +3421,7 @@ my_xstat_cm_Init(int (*ProbeHandler) (), int xstat_cm_numServers,
 
    xstat_cm_ConnInfo = (struct xstat_cm_ConnectionInfo *)
       malloc(xstat_cm_numServers * sizeof(struct xstat_cm_ConnectionInfo));
-   if (xstat_cm_ConnInfo == (struct xstat_cm_ConnectionInfo *)0) {
+   if (xstat_cm_ConnInfo == (struct xstat_cm_ConnectionInfo *) NULL) {
       sprintf(buffer,
               "Can't allocate %d connection info structs (%d bytes)",
               xstat_cm_numServers,
@@ -3584,8 +3435,12 @@ my_xstat_cm_Init(int (*ProbeHandler) (), int xstat_cm_numServers,
       return (-1);
    }
 
-   secobj = (struct rx_securityClass *)rxnull_NewClientSecurityObject();
-   if (secobj == (struct rx_securityClass *)0) {
+    /*
+     * Create a null Rx client security object, to be used by the
+     * probe LWP.
+     */
+   secobj = rxnull_NewClientSecurityObject();
+   if (secobj == (struct rx_securityClass *) NULL) {
       /*Delete already-malloc'ed areas */
       my_xstat_cm_Cleanup(1, xstat_cm_numServers, xstat_cm_ConnInfo, buff2);
       sprintf(buffer, "Can't create probe LWP client security object. %s",
@@ -3605,7 +3460,7 @@ my_xstat_cm_Init(int (*ProbeHandler) (), int xstat_cm_numServers,
              sizeof(struct sockaddr_in));
 
       hostNameFound = hostutil_GetNameByINet(curr_conn->skt.sin_addr.s_addr);
-      if (hostNameFound == (char *)0) {
+      if (hostNameFound == NULL) {
          warn("Can't map Internet address %lu to a string name",
               curr_conn->skt.sin_addr.s_addr);
          curr_conn->hostName[0] = '\0';
@@ -3623,7 +3478,7 @@ my_xstat_cm_Init(int (*ProbeHandler) (), int xstat_cm_numServers,
                                            1,   /*AFS service # */
                                            secobj,  /*Security obj */
                                            0);  /*# of above */
-      if (curr_conn->rxconn == (struct rx_connection *)0) {
+      if (curr_conn->rxconn == (struct rx_connection *) NULL) {
          sprintf(buffer,
                  "Can't create Rx connection to server '%s' (%lu)",
                  curr_conn->hostName, curr_conn->skt.sin_addr.s_addr);
@@ -3656,23 +3511,15 @@ my_xstat_cm_Init(int (*ProbeHandler) (), int xstat_cm_numServers,
 }   /* my_xstat_cm_Init() */
 
 
-
-/* my_xstat_cm_Cleanup() */
-
 /*
- * from xstat_cm.c:
- *
- * int xstat_cm_Cleanup(a_releaseMem)
- *     int a_releaseMem;
+ * from src/xstat/xstat_cm.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
 
 int
-my_xstat_cm_Cleanup(a_releaseMem, xstat_cm_numServers, xstat_cm_ConnInfo,
-                    buffer)
-   int a_releaseMem;
-   int xstat_cm_numServers;
-   struct xstat_cm_ConnectionInfo *xstat_cm_ConnInfo;
-   char *buffer;
+my_xstat_cm_Cleanup(int a_releaseMem, int xstat_cm_numServers,
+                    struct xstat_cm_ConnectionInfo *xstat_cm_ConnInfo,
+                    char *buffer)
 {
    int code = 0;                /*Return code */
    int conn_idx = 0;            /*Current connection index */
@@ -3689,16 +3536,16 @@ my_xstat_cm_Cleanup(a_releaseMem, xstat_cm_numServers, xstat_cm_ConnInfo,
       code = -1;
    }
    else {
-      if (xstat_cm_ConnInfo != (struct xstat_cm_ConnectionInfo *)0) {
+      if (xstat_cm_ConnInfo != (struct xstat_cm_ConnectionInfo *) NULL) {
          /*
           * The xstat_fs connection structure array exists.  Go through
           * it and close up any Rx connections it holds.
           */
          curr_conn = xstat_cm_ConnInfo;
          for (conn_idx = 0; conn_idx < xstat_cm_numServers; conn_idx++) {
-            if (curr_conn->rxconn != (struct rx_connection *)0) {
+            if (curr_conn->rxconn != (struct rx_connection *) NULL) {
                rx_DestroyConnection(curr_conn->rxconn);
-               curr_conn->rxconn = (struct rx_connection *)0;
+               curr_conn->rxconn = (struct rx_connection *) NULL;
             }
             curr_conn++;
          }  /*for each xstat_cm connection */
@@ -3709,7 +3556,7 @@ my_xstat_cm_Cleanup(a_releaseMem, xstat_cm_numServers, xstat_cm_ConnInfo,
     * If asked to, release the space we've allocated.
     */
    if (a_releaseMem) {
-      if (xstat_cm_ConnInfo != (struct xstat_cm_ConnectionInfo *)0)
+      if (xstat_cm_ConnInfo != (struct xstat_cm_ConnectionInfo *) NULL)
          free(xstat_cm_ConnInfo);
    }
 
@@ -3725,24 +3572,40 @@ my_xstat_cm_Cleanup(a_releaseMem, xstat_cm_numServers, xstat_cm_ConnInfo,
 /* end of afsmonitor helper functions */
 
 
+
 /* cmdebug helper functions */
 
-int
-   static
-IsLocked(alock)
-   register struct AFSDBLockDesc *alock;
+/*
+ * from src/venus/cmdebug.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
+static int
+IsLocked(register struct AFSDBLockDesc *alock)
 {
-   if (alock->waitStates || alock->exclLocked
-       || alock->numWaiting || alock->readersReading)
-      return 1;
-   return 0;
+    if (alock->waitStates || alock->exclLocked || alock->numWaiting
+        || alock->readersReading)
+        return 1;
+    return 0;
 }
+
+
+/*
+ * from src/venus/cmdebug.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
 
 struct cell_cache {
    afs_int32 cellnum;
    char *cellname;
    struct cell_cache *next;
 };
+
+
+/*
+ * from src/venus/cmdebug.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
 
 #ifdef USE_GETCELLNAME
 static char *
@@ -3784,10 +3647,14 @@ GetCellName(struct rx_connection *aconn, afs_int32 cellnum)
 }
 #endif
 
+
+/*
+ * from src/venus/cmdebug.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 void
-my_PrintLock(alock, LOCK)
-   register struct AFSDBLockDesc *alock;
-   HV *LOCK;
+my_PrintLock(register struct AFSDBLockDesc *alock, HV *LOCK)
 {
    hv_store(LOCK, "waitStates", 10, newSViv(alock->waitStates), 0);
    hv_store(LOCK, "exclLocked", 10, newSViv(alock->exclLocked), 0);
@@ -3798,12 +3665,15 @@ my_PrintLock(alock, LOCK)
    hv_store(LOCK, "numWaiting", 10, newSViv(alock->numWaiting), 0);
 }
 
+
+/*
+ * from src/venus/cmdebug.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 int
-my_PrintLocks(aconn, aint32, LOCKS, buffer)
-   register struct rx_connection *aconn;
-   int aint32;
-   AV *LOCKS;
-   char *buffer;
+my_PrintLocks(register struct rx_connection *aconn, int aint32,
+              AV *LOCKS, char *buffer)
 {
    register int i;
    struct AFSDBLock lock;
@@ -3834,6 +3704,7 @@ my_PrintLocks(aconn, aint32, LOCKS, buffer)
    return 0;
 }
 
+#ifdef OpenAFS_1_2
 int
 my_PrintCacheEntries(aconn, aint32, CACHE_ENTRIES, buffer)
    register struct rx_connection *aconn;
@@ -3912,6 +3783,231 @@ my_PrintCacheEntries(aconn, aint32, CACHE_ENTRIES, buffer)
    }
    return 0;
 }
+#endif		/* ifdef OpenAFS_1_2 */
+
+
+
+#ifdef OpenAFS_1_4
+/*
+ * from src/venus/cmdebug.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
+int
+PrintCacheEntries32(struct rx_connection *aconn, int aint32,
+                    AV *CACHE_ENTRIES, char *buffer)
+{
+    register int i;
+    register afs_int32 code;
+    struct AFSDBCacheEntry centry;
+    char *cellname;
+    HV *NETFID;
+    HV *CENTRY;
+    HV *LOCK;
+
+    for (i = 0; i < 10000; i++) {
+        code = RXAFSCB_GetCE(aconn, i, &centry);
+        if (code) {
+            if (code == 1)
+                break;
+            sprintf(buffer, "cmdebug: failed to get cache entry %d (%s)\n", i,
+                   error_message(code));
+            return code;
+        }
+
+        CENTRY = newHV();
+
+        hv_store(CENTRY, "addr", 4, newSViv(centry.addr), 0);
+
+        if (centry.addr == 0) {
+            /* PS output */
+            printf("Proc %4d sleeping at %08x, pri %3d\n",
+                   centry.netFid.Vnode, centry.netFid.Volume,
+                   centry.netFid.Unique - 25);
+            continue;
+        }
+
+        if (((aint32 == 0) && !IsLocked(&centry.lock)) ||
+            ((aint32 == 2) && (centry.refCount == 0)) ||
+            ((aint32 == 4) && (centry.callback == 0)))
+            continue;
+
+        /* otherwise print this entry */
+        hv_store(CENTRY, "cell", 4, newSViv(centry.cell), 0);
+        NETFID = newHV();
+        hv_store(NETFID, "Vnode", 5, newSViv(centry.netFid.Vnode), 0);
+        hv_store(NETFID, "Volume", 6, newSViv(centry.netFid.Volume), 0);
+        hv_store(NETFID, "Unique", 6, newSViv(centry.netFid.Unique), 0);
+        hv_store(CENTRY, "netFid", 6, newRV_inc((SV *) NETFID), 0);
+
+#ifdef USE_GETCELLNAME
+        cellname = GetCellName(aconn, centry.cell);
+        if (cellname)
+            hv_store(CENTRY, "cellname", 8, newSVpv(cellname, 0), 0);
+#endif
+
+        if (IsLocked(&centry.lock)) {
+            LOCK = newHV();
+            my_PrintLock(&centry.lock, LOCK);
+            hv_store(CENTRY, "lock", 4, newRV_inc((SV *) LOCK), 0);
+        }
+        hv_store(CENTRY, "Length",       6, newSViv(centry.Length), 0);
+        hv_store(CENTRY, "DataVersion", 11, newSViv(centry.DataVersion), 0);
+        hv_store(CENTRY, "refCount",     8, newSViv(centry.refCount), 0);
+        hv_store(CENTRY, "callback",     8, newSViv(centry.callback), 0);
+        hv_store(CENTRY, "cbExpires",    9, newSViv(centry.cbExpires), 0);
+        hv_store(CENTRY, "opens",        5, newSViv(centry.opens), 0);
+        hv_store(CENTRY, "writers",      7, newSViv(centry.writers), 0);
+
+
+        /* now display states */
+        hv_store(CENTRY, "mvstat", 6, newSViv(centry.mvstat), 0);
+
+        hv_store(CENTRY, "states", 6, newSViv(centry.states), 0);
+        av_store(CACHE_ENTRIES, i, newRV_inc((SV *) CENTRY));
+    }
+    return 0;
+}
+
+
+/*
+ * from src/venus/cmdebug.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
+int
+PrintCacheEntries64(struct rx_connection *aconn, int aint32,
+                    AV *CACHE_ENTRIES, char *buffer)
+{
+    register int i;
+    register afs_int32 code;
+    struct AFSDBCacheEntry64 centry;
+    char *cellname;
+    char *data_name;
+    HV *NETFID;
+    HV *CENTRY;
+    HV *LOCK;
+
+    for (i = 0; i < 10000; i++) {
+        code = RXAFSCB_GetCE64(aconn, i, &centry);
+        if (code) {
+            if (code == 1)
+                break;
+            sprintf(buffer, "cmdebug: failed to get cache entry %d (%s)\n", i,
+                   error_message(code));
+            return code;
+        }
+
+        CENTRY = newHV();
+
+        hv_store(CENTRY, "addr", 4, newSViv(centry.addr), 0);
+
+        if (centry.addr == 0) {
+            /* PS output */
+            NETFID = newHV();
+            hv_store(NETFID, "Vnode", 5, newSViv(centry.netFid.Vnode), 0);
+            hv_store(NETFID, "Volume", 6, newSViv(centry.netFid.Volume), 0);
+            hv_store(NETFID, "Unique", 6, newSViv(centry.netFid.Unique-25), 0);
+            hv_store(CENTRY, "netFid", 6, newRV_inc((SV *) NETFID), 0);
+            av_store(CACHE_ENTRIES, i, newRV_inc((SV *) CENTRY));
+            continue;
+        }
+
+        if (((aint32 == 0) && !IsLocked(&centry.lock)) ||
+            ((aint32 == 2) && (centry.refCount == 0)) ||
+            ((aint32 == 4) && (centry.callback == 0)))
+            continue;
+
+        /* otherwise print this entry */
+        hv_store(CENTRY, "cell", 4, newSViv(centry.cell), 0);
+        NETFID = newHV();
+        hv_store(NETFID, "Vnode", 5, newSViv(centry.netFid.Vnode), 0);
+        hv_store(NETFID, "Volume", 6, newSViv(centry.netFid.Volume), 0);
+        hv_store(NETFID, "Unique", 6, newSViv(centry.netFid.Unique), 0);
+        hv_store(CENTRY, "netFid", 6, newRV_inc((SV *) NETFID), 0);
+
+#ifdef USE_GETCELLNAME
+        cellname = GetCellName(aconn, centry.cell);
+        if (cellname)
+            hv_store(CENTRY, "cellname", 8, newSVpv(cellname, 0), 0);
+#endif
+
+        if (IsLocked(&centry.lock)) {
+            LOCK = newHV();
+            my_PrintLock(&centry.lock, LOCK);
+            hv_store(CENTRY, "lock", 4, newRV_inc((SV *) LOCK), 0);
+        }
+
+        hv_store(CENTRY, "Length",       6, newSViv(centry.Length), 0);
+        hv_store(CENTRY, "DataVersion", 11, newSViv(centry.DataVersion), 0);
+        hv_store(CENTRY, "refCount",     8, newSViv(centry.refCount), 0);
+        hv_store(CENTRY, "callback",     8, newSViv(centry.callback), 0);
+        hv_store(CENTRY, "cbExpires",    9, newSViv(centry.cbExpires), 0);
+        hv_store(CENTRY, "opens",        5, newSViv(centry.opens), 0);
+        hv_store(CENTRY, "writers",      7, newSViv(centry.writers), 0);
+
+        /* now display states */
+        if (centry.mvstat == 0)
+            data_name = "normal file";
+        else if (centry.mvstat == 1)
+            data_name = "mount point";
+        else if (centry.mvstat == 2)
+            data_name = "volume root";
+        else if (centry.mvstat == 3)
+            data_name = "directory";
+        else if (centry.mvstat == 4)
+            data_name = "symlink";
+        else if (centry.mvstat == 5)
+            data_name = "microsoft dfs link";
+        else if (centry.mvstat == 6)
+            data_name = "invalid link";
+        else
+            data_name = "bogus mvstat";
+        hv_store(CENTRY, "mvstat", 6, newSVpv(data_name, strlen(data_name)), 0);
+
+        data_name = "";
+        if (centry.states & 1)
+            sprintf(data_name, "%s, stat'd", data_name);
+        if (centry.states & 2)
+            sprintf(data_name, "%s, backup", data_name);
+        if (centry.states & 4)
+            sprintf(data_name, "%s, read-only", data_name);
+        if (centry.states & 8)
+            sprintf(data_name, "%s, mt pt valid", data_name);
+        if (centry.states & 0x10)
+            sprintf(data_name, "%s, pending core", data_name);
+        if (centry.states & 0x40)
+            sprintf(data_name, "%s, wait-for-store", data_name);
+        if (centry.states & 0x80)
+            sprintf(data_name, "%s, mapped", data_name);
+        hv_store(CENTRY, "states", 6, newSVpv(data_name, strlen(data_name)), 0);
+
+        av_store(CACHE_ENTRIES, i, newRV_inc((SV *) CENTRY));
+    }
+    return 0;
+}
+
+
+/*
+ * from src/venus/cmdebug.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
+int
+my_PrintCacheEntries(struct rx_connection *aconn, int aint32,
+                     AV *CACHE_ENTRIES, char *buffer)
+{
+    register afs_int32 code;
+    struct AFSDBCacheEntry64 centry64;
+
+    code = RXAFSCB_GetCE64(aconn, 0, &centry64);
+    if (code != RXGEN_OPCODE)
+        return PrintCacheEntries64(aconn, aint32, CACHE_ENTRIES, buffer);
+    else
+        return PrintCacheEntries32(aconn, aint32, CACHE_ENTRIES, buffer);
+}
+#endif		/* ifdef OpenAFS_1_4 */
+
 
 /* end of cmdebug helper functions */
 
@@ -3919,51 +4015,63 @@ my_PrintCacheEntries(aconn, aint32, CACHE_ENTRIES, buffer)
 
 /* udebug helper functions */
 
+/*
+ * from src/ubik/ubik.h
+ *
+ */
+
 #define MAXSKEW  10
 
-static short
-udebug_PortNumber(aport)
-   register char *aport;
-{
-   register int tc;
-   register afs_int32 total;
 
-   total = 0;
-   while ((tc = *aport++)) {
-      if (tc < '0' || tc > '9')
-         return -1; /* bad port number */
-      total *= 10;
-      total += tc - (int)'0';
-   }
-   return (total);
+/*
+ * from src/ubik/udebug.c
+ *     ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
+static short
+udebug_PortNumber(register char *aport)
+{
+       register int tc;
+    register afs_int32 total;
+
+    total = 0;
+    while ((tc = *aport++)) {
+        if (tc < '0' || tc > '9')
+            return -1;          /* bad port number */
+        total *= 10;
+        total += tc - (int)'0';
+    }
+    return (total);
 }
 
+
+/*
+ * from src/ubik/udebug.c
+ *     ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 static short
-udebug_PortName(aname)
-   char *aname;
+udebug_PortName(char *aname)
 {
-   struct servent *ts;
-   int len;
+    struct servent *ts;
+    int len;
 
-   ts = getservbyname(aname, (char *)0);
+    ts = getservbyname(aname, NULL);
 
-   if (ts)
-      return ntohs(ts->s_port); /* returns it in host byte order */
+    if (ts)
+        return ntohs(ts->s_port);       /* returns it in host byte order */
 
-   len = strlen(aname);
-   if (strncmp(aname, "vlserver", len) == 0) {
-      return 7003;
-   }
-   else if (strncmp(aname, "ptserver", len) == 0) {
-      return 7002;
-   }
-   else if (strncmp(aname, "kaserver", len) == 0) {
-      return 7004;
-   }
-   else if (strncmp(aname, "buserver", len) == 0) {
-      return 7021;
-   }
-   return (-1);
+    len = strlen(aname);
+    if (strncmp(aname, "vlserver", len) == 0) {
+        return 7003;
+    } else if (strncmp(aname, "ptserver", len) == 0) {
+        return 7002;
+    } else if (strncmp(aname, "kaserver", len) == 0) {
+        return 7004;
+    } else if (strncmp(aname, "buserver", len) == 0) {
+        return 7021;
+    }
+    return (-1);
 }
 
 
@@ -3975,11 +4083,12 @@ udebug_PortName(aname)
 
 /* scout helper functions */
 
+
 /*
- * We have to pass a port to Rx to start up our callback listener
- * service, but 7001 is already taken up by the Cache Manager.  So,
- * we make up our own.
+ * from src/fsprobe/fsprobe.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
  */
+
 #define FSPROBE_CBPORT  7101
 
 extern int RXAFSCB_ExecuteRequest();
@@ -4029,14 +4138,14 @@ my_fsprobe_LWP(fsprobe_numServers, fsprobe_ConnInfo, fsprobe_Results,
                  curr_conn->hostName);
          fflush(scout_debugfd);
       }
-      if (curr_conn->rxconn != (struct rx_connection *)0) {
+      if (curr_conn->rxconn != (struct rx_connection *) NULL) {
          if (scout_debugfd) {
             fprintf(scout_debugfd,
                     "[%s] Connection valid, calling RXAFS_GetStatistics\n",
                     rn);
             fflush(scout_debugfd);
          }
-         *curr_probeOK = RXAFS_GetStatistics(curr_conn->rxconn, curr_stats);
+         *curr_probeOK = RXAFS_GetStatistics(curr_conn->rxconn, (struct ViceStatistics *)curr_stats);
 
       } /*Valid Rx connection */
 
@@ -4048,7 +4157,7 @@ my_fsprobe_LWP(fsprobe_numServers, fsprobe_ConnInfo, fsprobe_Results,
                  curr_conn->hostName);
          fflush(scout_debugfd);
       }
-      if (curr_conn->rxVolconn != (struct rx_connection *)0) {
+      if (curr_conn->rxVolconn != (struct rx_connection *) NULL) {
          char pname[10];
          struct diskPartition partition;
 
@@ -4091,6 +4200,11 @@ my_fsprobe_LWP(fsprobe_numServers, fsprobe_ConnInfo, fsprobe_Results,
 }   /* my_fsprobe_LWP */
 
 
+/*
+ * from src/fsprobe/fsprobe.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 int
 my_XListPartitions(aconn, ptrPartList, cntp, scout_debugfd)
    struct rx_connection *aconn;
@@ -4130,7 +4244,7 @@ my_XListPartitions(aconn, ptrPartList, cntp, scout_debugfd)
       goto out;
    }
    partEnts.partEntries_len = 0;
-   partEnts.partEntries_val = (afs_int32 *) 0;
+   partEnts.partEntries_val = (afs_int32 *) NULL;
    code = AFSVolXListPartitions(aconn, &partEnts);
    if (!newvolserver) {
       if (code == RXGEN_OPCODE) {
@@ -4161,6 +4275,11 @@ my_XListPartitions(aconn, ptrPartList, cntp, scout_debugfd)
    return code;
 }
 
+
+/*
+ * from src/fsprobe/fsprobe.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
 
 int
 my_fsprobe_Cleanup(fsprobe_Results, fsprobe_ConnInfo, fsprobe_numServers,
@@ -4194,20 +4313,20 @@ my_fsprobe_Cleanup(fsprobe_Results, fsprobe_ConnInfo, fsprobe_numServers,
       code = -1;
    }
    else {
-      if (fsprobe_ConnInfo != (struct fsprobe_ConnectionInfo *)0) {
+      if (fsprobe_ConnInfo != (struct fsprobe_ConnectionInfo *) NULL) {
          /*
           * The fsprobe connection structure array exists.  Go through it
           * and close up any Rx connections it holds.
           */
          curr_conn = fsprobe_ConnInfo;
          for (conn_idx = 0; conn_idx < fsprobe_numServers; conn_idx++) {
-            if (curr_conn->rxconn != (struct rx_connection *)0) {
+            if (curr_conn->rxconn != (struct rx_connection *) NULL) {
                rx_DestroyConnection(curr_conn->rxconn);
-               curr_conn->rxconn = (struct rx_connection *)0;
+               curr_conn->rxconn = (struct rx_connection *) NULL;
             }
-            if (curr_conn->rxVolconn != (struct rx_connection *)0) {
+            if (curr_conn->rxVolconn != (struct rx_connection *) NULL) {
                rx_DestroyConnection(curr_conn->rxVolconn);
-               curr_conn->rxVolconn = (struct rx_connection *)0;
+               curr_conn->rxVolconn = (struct rx_connection *) NULL;
             }
             curr_conn++;
          }  /*for each fsprobe connection */
@@ -4217,11 +4336,11 @@ my_fsprobe_Cleanup(fsprobe_Results, fsprobe_ConnInfo, fsprobe_numServers,
    /*
     * Now, release all the space we've allocated
     */
-   if (fsprobe_ConnInfo != (struct fsprobe_ConnectionInfo *)0)
+   if (fsprobe_ConnInfo != (struct fsprobe_ConnectionInfo *) NULL)
       free(fsprobe_ConnInfo);
-   if (fsprobe_Results->stats != (struct ProbeViceStatistics *)0)
+   if (fsprobe_Results->stats != (struct ProbeViceStatistics *) NULL)
       free(fsprobe_Results->stats);
-   if (fsprobe_Results->probeOK != (int *)0)
+   if (fsprobe_Results->probeOK != (int *) NULL)
       free(fsprobe_Results->probeOK);
 
    /*
@@ -4233,7 +4352,10 @@ my_fsprobe_Cleanup(fsprobe_Results, fsprobe_ConnInfo, fsprobe_numServers,
 }
 
 
-/* my_fsprobe_Init() */
+/*
+ * from src/fsprobe/fsprobe.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
 
 int
 my_fsprobe_Init(fsprobe_Results, fsprobe_ConnInfo, a_numServers,
@@ -4273,7 +4395,7 @@ my_fsprobe_Init(fsprobe_Results, fsprobe_ConnInfo, a_numServers,
       sprintf(buffer, "[%s] Illegal number of servers: %d", rn, a_numServers);
       return (-1);
    }
-   if (a_socketArray == (struct sockaddr_in *)0) {
+   if (a_socketArray == (struct sockaddr_in *) NULL) {
       sprintf(buffer, "[%s] Null server socket array argument", rn);
       return (-1);
    }
@@ -4281,10 +4403,10 @@ my_fsprobe_Init(fsprobe_Results, fsprobe_ConnInfo, a_numServers,
    memset(fsprobe_Results, 0, sizeof(struct fsprobe_ProbeResults));
 
 
-   rxcall = (struct rx_call *)0;
-   Fids_Array = (AFSCBFids *) 0;
-   CallBack_Array = (AFSCBs *) 0;
-   interfaceAddr = (struct interfaceAddr *)0;
+   rxcall = (struct rx_call *) NULL;
+   Fids_Array = (AFSCBFids *) NULL;
+   CallBack_Array = (AFSCBs *) NULL;
+   interfaceAddr = (struct interfaceAddr *) NULL;
 
    SRXAFSCB_CallBack(rxcall, Fids_Array, CallBack_Array);
    SRXAFSCB_InitCallBackState2(rxcall, interfaceAddr);
@@ -4294,7 +4416,7 @@ my_fsprobe_Init(fsprobe_Results, fsprobe_ConnInfo, a_numServers,
 
    *fsprobe_ConnInfo = (struct fsprobe_ConnectionInfo *)
       malloc(a_numServers * sizeof(struct fsprobe_ConnectionInfo));
-   if (*fsprobe_ConnInfo == (struct fsprobe_ConnectionInfo *)0) {
+   if (*fsprobe_ConnInfo == (struct fsprobe_ConnectionInfo *) NULL) {
       sprintf(buffer,
               "[%s] Can't allocate %d connection info structs (%d bytes)\n",
               rn, a_numServers,
@@ -4310,7 +4432,7 @@ my_fsprobe_Init(fsprobe_Results, fsprobe_ConnInfo, a_numServers,
    fsprobe_statsBytes = a_numServers * sizeof(struct ProbeViceStatistics);
    fsprobe_Results->stats = (struct ProbeViceStatistics *)
       malloc(fsprobe_statsBytes);
-   if (fsprobe_Results->stats == (struct ProbeViceStatistics *)0) {
+   if (fsprobe_Results->stats == (struct ProbeViceStatistics *) NULL) {
       /*Delete already-malloc'ed areas */
       my_fsprobe_Cleanup(fsprobe_Results, *fsprobe_ConnInfo, a_numServers,
                          scout_debugfd, buff2);
@@ -4328,7 +4450,7 @@ my_fsprobe_Init(fsprobe_Results, fsprobe_ConnInfo, a_numServers,
 
    fsprobe_probeOKBytes = a_numServers * sizeof(int);
    fsprobe_Results->probeOK = (int *)malloc(fsprobe_probeOKBytes);
-   if (fsprobe_Results->probeOK == (int *)0) {
+   if (fsprobe_Results->probeOK == (int *) NULL) {
       /* Delete already-malloc'ed areas */
       my_fsprobe_Cleanup(fsprobe_Results, *fsprobe_ConnInfo, a_numServers,
                          scout_debugfd, buff2);
@@ -4383,7 +4505,7 @@ my_fsprobe_Init(fsprobe_Results, fsprobe_ConnInfo, a_numServers,
     * Callback listener.
     */
    CBsecobj = (struct rx_securityClass *)rxnull_NewServerSecurityObject();
-   if (CBsecobj == (struct rx_securityClass *)0) {
+   if (CBsecobj == (struct rx_securityClass *) NULL) {
       /*Delete already-malloc'ed areas */
       my_fsprobe_Cleanup(fsprobe_Results, *fsprobe_ConnInfo, a_numServers,
                          scout_debugfd, buff2);
@@ -4402,7 +4524,7 @@ my_fsprobe_Init(fsprobe_Results, fsprobe_ConnInfo, a_numServers,
     * probe LWP.
     */
    secobj = (struct rx_securityClass *)rxnull_NewClientSecurityObject();
-   if (secobj == (struct rx_securityClass *)0) {
+   if (secobj == (struct rx_securityClass *) NULL) {
       /*Delete already-malloc'ed areas */
       my_fsprobe_Cleanup(fsprobe_Results, *fsprobe_ConnInfo, a_numServers,
                          scout_debugfd, buff2);
@@ -4437,7 +4559,7 @@ my_fsprobe_Init(fsprobe_Results, fsprobe_ConnInfo, a_numServers,
              sizeof(struct sockaddr_in));
 
       hostNameFound = hostutil_GetNameByINet(curr_conn->skt.sin_addr.s_addr);
-      if (hostNameFound == (char *)0) {
+      if (hostNameFound == (char *) NULL) {
          warn("Can't map Internet address %lu to a string name\n",
               curr_conn->skt.sin_addr.s_addr);
          curr_conn->hostName[0] = '\0';
@@ -4468,7 +4590,7 @@ my_fsprobe_Init(fsprobe_Results, fsprobe_ConnInfo, a_numServers,
                                            1,   /*AFS service num */
                                            secobj,  /*Security object */
                                            0);  /*Number of above */
-      if (curr_conn->rxconn == (struct rx_connection *)0) {
+      if (curr_conn->rxconn == (struct rx_connection *) NULL) {
          sprintf(buffer,
                  "[%s] Can't create Rx connection to server %s (%lu)",
                  rn, curr_conn->hostName, curr_conn->skt.sin_addr.s_addr);
@@ -4494,7 +4616,7 @@ my_fsprobe_Init(fsprobe_Results, fsprobe_ConnInfo, a_numServers,
                                               VOLSERVICE_ID,    /*AFS service num */
                                               secobj,   /*Security object */
                                               0);   /*Number of above */
-      if (curr_conn->rxVolconn == (struct rx_connection *)0) {
+      if (curr_conn->rxVolconn == (struct rx_connection *) NULL) {
          sprintf(buffer,
                  "[%s] Can't create Rx connection to volume server %s (%lu)\n",
                  rn, curr_conn->hostName, curr_conn->skt.sin_addr.s_addr);
@@ -4535,7 +4657,7 @@ my_fsprobe_Init(fsprobe_Results, fsprobe_ConnInfo, a_numServers,
                                    &CBsecobj,   /*Ptr to security object(s) */
                                    1,   /*Number of security objects */
                                    RXAFSCB_ExecuteRequest); /*Dispatcher */
-   if (rxsrv_afsserver == (struct rx_service *)0) {
+   if (rxsrv_afsserver == (struct rx_service *) NULL) {
       /*Delete already-malloc'ed areas */
       my_fsprobe_Cleanup(fsprobe_Results, *fsprobe_ConnInfo, a_numServers,
                          scout_debugfd, buff2);
@@ -4566,6 +4688,12 @@ my_fsprobe_Init(fsprobe_Results, fsprobe_ConnInfo, a_numServers,
       return (0);
 
 }   /* my_fsprobe_Init() */
+
+
+/*
+ * from src/scout/scout.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
 
 int
 my_FS_Handler(fsprobe_Results, numServers, fsprobe_ConnInfo, scout_debugfd,
@@ -4750,11 +4878,13 @@ my_FS_Handler(fsprobe_Results, numServers, fsprobe_ConnInfo, scout_debugfd,
 
 /* xstat_fs_test helper functions */
 
+/*
+ * from src/xstat/xstat_fs_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 void
-my_PrintOpTiming(a_opIdx, a_opTimeP, DATA)
-   int a_opIdx;
-   struct fs_stats_opTimingData *a_opTimeP;
-   HV *DATA;
+my_PrintOpTiming(int a_opIdx, struct fs_stats_opTimingData *a_opTimeP, HV *DATA)
 {
    HV *OPTIMING = newHV();
 
@@ -4778,11 +4908,14 @@ my_PrintOpTiming(a_opIdx, a_opTimeP, DATA)
             newRV_inc((SV *) OPTIMING), 0);
 }
 
+
+/*
+ * from src/xstat/xstat_fs_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 void
-my_PrintXferTiming(a_opIdx, a_xferP, DATA)
-   int a_opIdx;
-   struct fs_stats_xferData *a_xferP;
-   HV *DATA;
+my_PrintXferTiming(int a_opIdx, struct fs_stats_xferData *a_xferP, HV *DATA)
 {
    HV *XFERTIMING = newHV();
    AV *COUNT = newAV();
@@ -4818,11 +4951,13 @@ my_PrintXferTiming(a_opIdx, a_xferP, DATA)
 }
 
 
+/*
+ * from src/xstat/xstat_fs_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
 
 void
-my_PrintDetailedPerfInfo(a_detP, DATA)
-   struct fs_stats_DetailedStats *a_detP;
-   HV *DATA;
+my_PrintDetailedPerfInfo(struct fs_stats_DetailedStats *a_detP, HV *DATA)
 {
    int currIdx;
    HV *OPTIMES = newHV();
@@ -4844,10 +4979,13 @@ my_PrintDetailedPerfInfo(a_detP, DATA)
 }
 
 
+/*
+ * from src/xstat/xstat_fs_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 void
-my_PrintOverallPerfInfo(a_ovP, DATA)
-   struct afs_PerfStats *a_ovP;
-   HV *DATA;
+my_PrintOverallPerfInfo(struct afs_PerfStats *a_ovP, HV *DATA)
 {
    hv_store(DATA, "numPerfCalls", strlen("numPerfCalls"),
             newSViv(a_ovP->numPerfCalls), 0);
@@ -4986,6 +5124,14 @@ my_PrintOverallPerfInfo(a_ovP, DATA)
             newSViv(a_ovP->rx_nCallStructs), 0);
    hv_store(DATA, "rx_nFreeCallStructs", strlen("rx_nFreeCallStructs"),
             newSViv(a_ovP->rx_nFreeCallStructs), 0);
+#ifndef NOAFS_XSTATSCOLL_CBSTATS
+   hv_store(DATA, "rx_nBusies", strlen("rx_nBusies"),
+            newSViv(a_ovP->rx_nBusies), 0);
+   hv_store(DATA, "fs_nBusies", strlen("fs_nBusies"),
+            newSViv(a_ovP->fs_nBusies), 0);
+   hv_store(DATA, "fs_GetCapabilities", strlen("fs_GetCapabilities"),
+            newSViv(a_ovP->fs_nGetCaps), 0);
+#endif
 
    /*
     * Host module fields.
@@ -5013,10 +5159,15 @@ my_PrintOverallPerfInfo(a_ovP, DATA)
             newSViv(a_ovP->sysname_ID), 0);
 }
 
+
+
+/*
+ * from src/xstat/xstat_fs_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 void
-my_PrintCallInfo(xstat_fs_Results, HOSTINFO)
-   struct xstat_fs_ProbeResults xstat_fs_Results;
-   HV *HOSTINFO;
+my_PrintCallInfo(struct xstat_fs_ProbeResults *xstat_fs_Results, HV *HOSTINFO)
 {
    int numInt32s;
    afs_int32 *currInt32;
@@ -5024,10 +5175,10 @@ my_PrintCallInfo(xstat_fs_Results, HOSTINFO)
    char temp[100];
    HV *DATA = newHV();
 
-   numInt32s = xstat_fs_Results.data.AFS_CollData_len;
+   numInt32s = xstat_fs_Results->data.AFS_CollData_len;
 
    hv_store(DATA, "AFS_CollData_len", 16, newSViv(numInt32s), 0);
-   currInt32 = (afs_int32 *) (xstat_fs_Results.data.AFS_CollData_val);
+   currInt32 = (afs_int32 *) (xstat_fs_Results->data.AFS_CollData_val);
    for (i = 0; i < numInt32s; i++) {
       sprintf(temp, "%d", i);
       hv_store(DATA, temp, strlen(temp), newSViv(*currInt32++), 0);
@@ -5035,10 +5186,14 @@ my_PrintCallInfo(xstat_fs_Results, HOSTINFO)
    hv_store(HOSTINFO, "data", 4, newRV_inc((SV *) DATA), 0);
 }
 
+
+/*
+ * from src/xstat/xstat_fs_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 void
-my_PrintPerfInfo(xstat_fs_Results, HOSTINFO)
-   struct xstat_fs_ProbeResults xstat_fs_Results;
-   HV *HOSTINFO;
+my_PrintPerfInfo(struct xstat_fs_ProbeResults *xstat_fs_Results, HV *HOSTINFO)
 {
    /* Correct # int32s to rcv */
    static afs_int32 perfInt32s = (sizeof(struct afs_PerfStats) >> 2);
@@ -5048,7 +5203,7 @@ my_PrintPerfInfo(xstat_fs_Results, HOSTINFO)
    struct afs_PerfStats *perfP;
    HV *DATA = newHV();
 
-   numInt32s = xstat_fs_Results.data.AFS_CollData_len;
+   numInt32s = xstat_fs_Results->data.AFS_CollData_len;
    if (numInt32s != perfInt32s) {
       warn("** Data size mismatch in performance collection!");
       warn("** Expecting %d, got %d\n", perfInt32s, numInt32s);
@@ -5056,17 +5211,21 @@ my_PrintPerfInfo(xstat_fs_Results, HOSTINFO)
    }
 
    perfP = (struct afs_PerfStats *)
-      (xstat_fs_Results.data.AFS_CollData_val);
+      (xstat_fs_Results->data.AFS_CollData_val);
 
    my_PrintOverallPerfInfo(perfP, DATA);
 
    hv_store(HOSTINFO, "data", 4, newRV_inc((SV *) DATA), 0);
 }
 
+
+/*
+ * from src/xstat/xstat_fs_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 void
-my_fs_PrintFullPerfInfo(xstat_fs_Results, HOSTINFO)
-   struct xstat_fs_ProbeResults xstat_fs_Results;
-   HV *HOSTINFO;
+my_fs_PrintFullPerfInfo(struct xstat_fs_ProbeResults *xstat_fs_Results, HV *HOSTINFO)
 {
    /* Correct # int32s to rcv */
    static afs_int32 fullPerfInt32s = (sizeof(struct fs_stats_FullPerfStats) >> 2);
@@ -5076,7 +5235,7 @@ my_fs_PrintFullPerfInfo(xstat_fs_Results, HOSTINFO)
    struct fs_stats_FullPerfStats *fullPerfP;
    HV *DATA = newHV();
 
-   numInt32s = xstat_fs_Results.data.AFS_CollData_len;
+   numInt32s = xstat_fs_Results->data.AFS_CollData_len;
    if (numInt32s != fullPerfInt32s) {
       warn("** Data size mismatch in full performance collection!");
       warn("** Expecting %d, got %d\n", fullPerfInt32s, numInt32s);
@@ -5084,13 +5243,64 @@ my_fs_PrintFullPerfInfo(xstat_fs_Results, HOSTINFO)
    }
 
    fullPerfP = (struct fs_stats_FullPerfStats *)
-      (xstat_fs_Results.data.AFS_CollData_val);
+      (xstat_fs_Results->data.AFS_CollData_val);
 
    my_PrintOverallPerfInfo(&(fullPerfP->overall), DATA);
    my_PrintDetailedPerfInfo(&(fullPerfP->det), DATA);
 
    hv_store(HOSTINFO, "data", 4, newRV_inc((SV *) DATA), 0);
 }
+
+
+/*
+ * from src/xstat/xstat_fs_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
+static char *CbCounterStrings[] = {
+    "DeleteFiles",
+    "DeleteCallBacks",
+    "BreakCallBacks",
+    "AddCallBack",
+    "GotSomeSpaces",
+    "DeleteAllCallBacks",
+    "nFEs", "nCBs", "nblks",
+    "CBsTimedOut",
+    "nbreakers",
+    "GSS1", "GSS2", "GSS3", "GSS4", "GSS5"
+};
+
+
+/*
+ * from src/xstat/xstat_fs_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
+void
+my_fs_PrintCbCounters(struct xstat_fs_ProbeResults *xstat_fs_Results, HV *HOSTINFO)
+{
+    int numInt32s = sizeof(CbCounterStrings)/sizeof(char *);
+    int i;
+    afs_uint32 *val = xstat_fs_Results->data.AFS_CollData_val;
+    HV *DATA = newHV();
+
+    if (numInt32s > xstat_fs_Results->data.AFS_CollData_len)
+        numInt32s = xstat_fs_Results->data.AFS_CollData_len;
+
+    for (i=0; i<numInt32s; i++) {
+        hv_store(DATA, CbCounterStrings[i], strlen(CbCounterStrings[i]), newSViv(val[i]), 0);
+    }
+
+   hv_store(HOSTINFO, "CbCounters", 10, newRV_inc((SV *) DATA), 0);
+}
+
+
+
+
+/*
+ * from src/xstat/xstat_fs_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
 
 int
 my_xstat_FS_Handler(xstat_fs_Results, xstat_fs_numServers, index, buffer,
@@ -5117,16 +5327,22 @@ my_xstat_FS_Handler(xstat_fs_Results, xstat_fs_numServers, index, buffer,
 
       switch (xstat_fs_Results.collectionNumber) {
         case AFS_XSTATSCOLL_CALL_INFO:
-           my_PrintCallInfo(xstat_fs_Results, HOSTINFO);
+           my_PrintCallInfo(&xstat_fs_Results, HOSTINFO);
            break;
 
         case AFS_XSTATSCOLL_PERF_INFO:
-           my_PrintPerfInfo(xstat_fs_Results, HOSTINFO);
+           my_PrintPerfInfo(&xstat_fs_Results, HOSTINFO);
            break;
 
         case AFS_XSTATSCOLL_FULL_PERF_INFO:
-           my_fs_PrintFullPerfInfo(xstat_fs_Results, HOSTINFO);
+           my_fs_PrintFullPerfInfo(&xstat_fs_Results, HOSTINFO);
            break;
+
+#ifndef NOAFS_XSTATSCOLL_CBSTATS
+        case AFS_XSTATSCOLL_CBSTATS:
+           my_fs_PrintCbCounters(&xstat_fs_Results, HOSTINFO);
+           break;
+#endif
 
         default:
            sprintf(buffer, "** Unknown collection: %d",
@@ -5145,16 +5361,20 @@ my_xstat_FS_Handler(xstat_fs_Results, xstat_fs_numServers, index, buffer,
 
 /* xstat_cm_test helper functions */
 
+
+/*
+ * from src/xstat/xstat_cm_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 void
-my_print_cmCallStats(xstat_cm_Results, HOSTINFO)
-   struct xstat_cm_ProbeResults xstat_cm_Results;
-   HV *HOSTINFO;
+my_print_cmCallStats(struct xstat_cm_ProbeResults *xstat_cm_Results, HV *HOSTINFO)
 {
    struct afs_CMStats *cmp;
    HV *DATA = newHV();
    char *data_name;
 
-   cmp = (struct afs_CMStats *)(xstat_cm_Results.data.AFSCB_CollData_val);
+   cmp = (struct afs_CMStats *)(xstat_cm_Results->data.AFSCB_CollData_val);
 
    data_name = "afs_init";
    hv_store(DATA, data_name, strlen(data_name),
@@ -6387,17 +6607,19 @@ my_print_cmCallStats(xstat_cm_Results, HOSTINFO)
 
 }
 
+
+/*
+ * from src/xstat/xstat_cm_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 void
-my_cm_PrintUpDownStats(a_upDownP, UPDOWN, index)
-   struct afs_stats_SrvUpDownInfo *a_upDownP;
-   AV *UPDOWN;
-   int index;
+my_cm_PrintUpDownStats(struct afs_stats_SrvUpDownInfo *a_upDownP, AV *UPDOWN, int index)
 {
    HV *INFO = newHV();
    AV *DOWNDURATIONS = newAV();
    AV *DOWNINCIDENTS = newAV();
    int i;
-
 
    /*
     * First, print the simple values.
@@ -6442,10 +6664,13 @@ my_cm_PrintUpDownStats(a_upDownP, UPDOWN, index)
 }
 
 
+/*
+ * from src/xstat/xstat_cm_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 void
-my_cm_PrintOverallPerfInfo(a_ovP, PERF)
-   struct afs_stats_CMPerf *a_ovP;
-   HV *PERF;
+my_cm_PrintOverallPerfInfo(struct afs_stats_CMPerf *a_ovP, HV *PERF)
 {
    char *data_name;
    AV *FS_UPDOWN = newAV();
@@ -6582,6 +6807,10 @@ my_cm_PrintOverallPerfInfo(a_ovP, PERF)
 }
 
 
+/*
+ * from src/xstat/xstat_cm_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
 
 void
 my_cm_PrintOpTiming(a_opIdx, a_opNames, a_opTimeP, RPCTIMES)
@@ -6612,6 +6841,12 @@ my_cm_PrintOpTiming(a_opIdx, a_opNames, a_opTimeP, RPCTIMES)
             newRV_inc((SV *) TIMES), 0);
 }
 
+
+/*
+ * from src/xstat/xstat_cm_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 void
 my_cm_PrintErrInfo(a_opIdx, a_opNames, a_opErrP, RPCERRORS)
    int a_opIdx;
@@ -6621,18 +6856,22 @@ my_cm_PrintErrInfo(a_opIdx, a_opNames, a_opErrP, RPCERRORS)
 {
    HV *ERRORS = newHV();
 
-   hv_store(ERRORS, "err_Server", 10, newSViv(a_opErrP->err_Server), 0);
-   hv_store(ERRORS, "err_Network", 11, newSViv(a_opErrP->err_Network), 0);
-   hv_store(ERRORS, "err_Protection", 14, newSViv(a_opErrP->err_Protection),
-            0);
-   hv_store(ERRORS, "err_Volume", 10, newSViv(a_opErrP->err_Volume), 0);
-   hv_store(ERRORS, "err_VolumeBusies", 16,
-            newSViv(a_opErrP->err_VolumeBusies), 0);
-   hv_store(ERRORS, "err_Other", 9, newSViv(a_opErrP->err_Other), 0);
+   hv_store(ERRORS, "err_Server",       10, newSViv(a_opErrP->err_Server), 0);
+   hv_store(ERRORS, "err_Network",      11, newSViv(a_opErrP->err_Network), 0);
+   hv_store(ERRORS, "err_Protection",   14, newSViv(a_opErrP->err_Protection), 0);
+   hv_store(ERRORS, "err_Volume",       10, newSViv(a_opErrP->err_Volume), 0);
+   hv_store(ERRORS, "err_VolumeBusies", 16, newSViv(a_opErrP->err_VolumeBusies), 0);
+   hv_store(ERRORS, "err_Other",         9, newSViv(a_opErrP->err_Other), 0);
 
    hv_store(RPCERRORS, a_opNames[a_opIdx], strlen(a_opNames[a_opIdx]),
             newRV_inc((SV *) ERRORS), 0);
 }
+
+
+/*
+ * from src/xstat/xstat_cm_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
 
 void
 my_cm_PrintXferTiming(a_opIdx, a_opNames, a_xferP, XFERTIMES)
@@ -6651,15 +6890,12 @@ my_cm_PrintXferTiming(a_opIdx, a_opNames, a_xferP, XFERTIMES)
                                          +
                                          (a_xferP->sumTime.tv_usec /
                                           1000000.0)), 0);
-   hv_store(TIMES, "sqrTime", 7,
-            newSVnv(a_xferP->sqrTime.tv_sec +
-                    (a_xferP->sqrTime.tv_usec / 1000000.0)), 0);
-   hv_store(TIMES, "minTime", 7,
-            newSVnv(a_xferP->minTime.tv_sec +
-                    (a_xferP->minTime.tv_usec / 1000000.0)), 0);
-   hv_store(TIMES, "maxTime", 7,
-            newSVnv(a_xferP->maxTime.tv_sec +
-                    (a_xferP->maxTime.tv_usec / 1000000.0)), 0);
+   hv_store(TIMES, "sqrTime", 7, newSVnv(a_xferP->sqrTime.tv_sec +
+                                 (a_xferP->sqrTime.tv_usec / 1000000.0)), 0);
+   hv_store(TIMES, "minTime", 7, newSVnv(a_xferP->minTime.tv_sec +
+                                 (a_xferP->minTime.tv_usec / 1000000.0)), 0);
+   hv_store(TIMES, "maxTime", 7, newSVnv(a_xferP->maxTime.tv_sec +
+                                 (a_xferP->maxTime.tv_usec / 1000000.0)), 0);
    hv_store(TIMES, "sumBytes", 8, newSViv(a_xferP->sumBytes), 0);
    hv_store(TIMES, "minBytes", 8, newSViv(a_xferP->minBytes), 0);
    hv_store(TIMES, "maxBytes", 8, newSViv(a_xferP->maxBytes), 0);
@@ -6674,16 +6910,20 @@ my_cm_PrintXferTiming(a_opIdx, a_opNames, a_xferP, XFERTIMES)
             newRV_inc((SV *) TIMES), 0);
 }
 
+
+/*
+ * from src/xstat/xstat_cm_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 void
-my_PrintRPCPerfInfo(a_rpcP, RPC)
-   struct afs_stats_RPCOpInfo *a_rpcP;
-   HV *RPC;
+my_PrintRPCPerfInfo(struct afs_stats_RPCOpInfo *a_rpcP, HV *RPC)
 {
    int currIdx;
-   HV *FSRPCTIMES = newHV();
+   HV *FSRPCTIMES  = newHV();
    HV *FSRPCERRORS = newHV();
    HV *FSXFERTIMES = newHV();
-   HV *CMRPCTIMES = newHV();
+   HV *CMRPCTIMES  = newHV();
 
    for (currIdx = 0; currIdx < AFS_STATS_NUM_FS_RPC_OPS; currIdx++)
       my_cm_PrintOpTiming(currIdx, fsOpNames, &(a_rpcP->fsRPCTimes[currIdx]),
@@ -6712,10 +6952,13 @@ my_PrintRPCPerfInfo(a_rpcP, RPC)
 }
 
 
+/*
+ * from src/xstat/xstat_cm_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 void
-my_cm_PrintFullPerfInfo(xstat_cm_Results, HOSTINFO)
-   struct xstat_cm_ProbeResults xstat_cm_Results;
-   HV *HOSTINFO;
+my_cm_PrintFullPerfInfo(struct xstat_cm_ProbeResults *xstat_cm_Results, HV *HOSTINFO)
 {
    /*Ptr to authentication stats */
    struct afs_stats_AuthentInfo *authentP;
@@ -6726,13 +6969,13 @@ my_cm_PrintFullPerfInfo(xstat_cm_Results, HOSTINFO)
    /*# int32s actually received */
    afs_int32 numInt32s;
    struct afs_stats_CMFullPerf *fullP;
-   HV *DATA = newHV();
-   HV *PERF = newHV();
-   HV *RPC = newHV();
-   HV *AUTHENT = newHV();
+   HV *DATA      = newHV();
+   HV *PERF      = newHV();
+   HV *RPC       = newHV();
+   HV *AUTHENT   = newHV();
    HV *ACCESSINF = newHV();
 
-   numInt32s = xstat_cm_Results.data.AFSCB_CollData_len;
+   numInt32s = xstat_cm_Results->data.AFSCB_CollData_len;
    if (numInt32s != fullPerfInt32s) {
       warn("** Data size mismatch in performance collection!");
       warn("** Expecting %d, got %d\n", fullPerfInt32s, numInt32s);
@@ -6740,7 +6983,7 @@ my_cm_PrintFullPerfInfo(xstat_cm_Results, HOSTINFO)
       return;
    }
    fullP = (struct afs_stats_CMFullPerf *)
-      (xstat_cm_Results.data.AFSCB_CollData_val);
+      (xstat_cm_Results->data.AFSCB_CollData_val);
 
    my_cm_PrintOverallPerfInfo(&(fullP->perf), PERF);
    hv_store(DATA, "perf", 4, newRV_inc((SV *) PERF), 0);
@@ -6788,10 +7031,13 @@ my_cm_PrintFullPerfInfo(xstat_cm_Results, HOSTINFO)
 }
 
 
+/*
+ * from src/xstat/xstat_cm_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
+
 void
-my_cm_PrintPerfInfo(xstat_cm_Results, HOSTINFO)
-   struct xstat_cm_ProbeResults xstat_cm_Results;
-   HV *HOSTINFO;
+my_cm_PrintPerfInfo(struct xstat_cm_ProbeResults *xstat_cm_Results, HV *HOSTINFO)
 {
    /*Correct # int32s to rcv */
    static afs_int32 perfInt32s = (sizeof(struct afs_stats_CMPerf) >> 2);
@@ -6801,7 +7047,7 @@ my_cm_PrintPerfInfo(xstat_cm_Results, HOSTINFO)
    struct afs_stats_CMPerf *perfP;
    HV *DATA = newHV();
 
-   numInt32s = xstat_cm_Results.data.AFSCB_CollData_len;
+   numInt32s = xstat_cm_Results->data.AFSCB_CollData_len;
    if (numInt32s != perfInt32s) {
       warn("** Data size mismatch in performance collection!");
       warn("** Expecting %d, got %d\n", perfInt32s, numInt32s);
@@ -6809,12 +7055,17 @@ my_cm_PrintPerfInfo(xstat_cm_Results, HOSTINFO)
       return;
    }
    perfP = (struct afs_stats_CMPerf *)
-      (xstat_cm_Results.data.AFSCB_CollData_val);
+      (xstat_cm_Results->data.AFSCB_CollData_val);
 
    my_cm_PrintOverallPerfInfo(perfP, DATA);
    hv_store(HOSTINFO, "data", 4, newRV_inc((SV *) DATA), 0);
 }
 
+
+/*
+ * from src/xstat/xstat_cm_test.c
+ *    ("$Header: /afs/slac/g/scs/slur/Repository/AFSDebug/Debug/src/Monitor.xs,v 1.2 2006/07/05 22:25:10 alfw Exp $");
+ */
 
 int
 my_xstat_CM_Handler(xstat_cm_Results, xstat_cm_numServers, index, buffer,
@@ -6843,17 +7094,17 @@ my_xstat_CM_Handler(xstat_cm_Results, xstat_cm_numServers, index, buffer,
         case AFSCB_XSTATSCOLL_CALL_INFO:
            /* Why was this commented out in 3.3 ? */
            /* PrintCallInfo();  */
-           my_print_cmCallStats(xstat_cm_Results, HOSTINFO);
+           my_print_cmCallStats(&xstat_cm_Results, HOSTINFO);
            break;
 
         case AFSCB_XSTATSCOLL_PERF_INFO:
            /* we will do nothing here */
            /* PrintPerfInfo(); */
-           my_cm_PrintPerfInfo(xstat_cm_Results, HOSTINFO);
+           my_cm_PrintPerfInfo(&xstat_cm_Results, HOSTINFO);
            break;
 
         case AFSCB_XSTATSCOLL_FULL_PERF_INFO:
-           my_cm_PrintFullPerfInfo(xstat_cm_Results, HOSTINFO);
+           my_cm_PrintFullPerfInfo(&xstat_cm_Results, HOSTINFO);
            break;
 
         default:
@@ -6961,7 +7212,7 @@ afs_do_xstat_cm_test(args)
 
     CMSktArray = (struct sockaddr_in *)
         malloc(numCMs * sizeof(struct sockaddr_in));
-    if (CMSktArray == (struct sockaddr_in *)0) {
+    if (CMSktArray == (struct sockaddr_in *) NULL) {
         sprintf(buffer, "Can't allocate socket array for %d Cache Managers",
                 numCMs);
         BSETCODE(-1, buffer);
@@ -6969,10 +7220,14 @@ afs_do_xstat_cm_test(args)
     }
 
     for (currCM = 0; currCM < numCMs; currCM++) {
-        CMSktArray[currCM].sin_family = htons(AF_INET); /*Internet family*/
-        CMSktArray[currCM].sin_port   = htons(7001);       /*Cache Manager port*/
+#if defined(AFS_DARWIN_ENV) || defined(AFS_FBSD_ENV)
+        CMSktArray[currCM].sin_family = AF_INET;        /*Internet family */
+#else
+        CMSktArray[currCM].sin_family = htons(AF_INET); /*Internet family */
+#endif
+        CMSktArray[currCM].sin_port = htons(7001);      /*Cache Manager port */
         he = hostutil_GetHostByName((char *) SvPV(*av_fetch(host_array, currCM, 0), PL_na));
-        if (he == (struct hostent *)0) {
+        if (he == (struct hostent *) NULL) {
             sprintf(buffer,
                     "Can't get host info for '%s'\n",
                     (char *) SvPV(*av_fetch(host_array, currCM, 0), PL_na));
@@ -7095,7 +7350,7 @@ afs_do_xstat_fs_test(args)
 
     sktbytes = numFSs * sizeof(struct sockaddr_in);
     FSSktArray = (struct sockaddr_in *) malloc(sktbytes);
-    if (FSSktArray == (struct sockaddr_in *)0) {
+    if (FSSktArray == (struct sockaddr_in *) NULL) {
       sprintf(buffer,
               "Can't malloc() %d sockaddrs (%d bytes) for the given file servers",
               numFSs, sktbytes);
@@ -7108,10 +7363,14 @@ afs_do_xstat_fs_test(args)
      * Fill in the socket array for each of the File Servers listed.
      */
     for (currFS = 0; currFS < numFSs; currFS++) {
-	FSSktArray[currFS].sin_family = htons(AF_INET); /*Internet family*/
+#if defined(AFS_DARWIN_ENV) || defined(AFS_FBSD_ENV)
+        FSSktArray[currFS].sin_family = AF_INET;        /*Internet family */
+#else
+        FSSktArray[currFS].sin_family = htons(AF_INET); /*Internet family */
+#endif
 	FSSktArray[currFS].sin_port   = htons(7000);	/*FileServer port*/
 	he = hostutil_GetHostByName((char *) SvPV(*av_fetch(host_array, currFS, 0), PL_na));
-	if (he == (struct hostent *)0) {
+	if (he == (struct hostent *) NULL) {
 	    sprintf(buffer,
 		    "Can't get host info for '%s'",
 		    (char *) SvPV(*av_fetch(host_array, currFS, 0), PL_na));
@@ -7167,10 +7426,10 @@ afs_do_scout(args)
     struct hostent *he;
     int i, code;
     int sktbytes;
-    FILE *scout_debugfd = (FILE *)0;
-    char *debug_filename = (char *)0;
+    FILE *scout_debugfd = (FILE *) NULL;
+    char *debug_filename = (char *) NULL;
 
-    AV *host_array = (AV *)0;
+    AV *host_array = (AV *) NULL;
 
     AV *RETVAL = newAV();
 
@@ -7224,7 +7483,7 @@ afs_do_scout(args)
 
     if(debug_filename) {
       scout_debugfd = fopen(debug_filename, "w");
-      if(scout_debugfd == (FILE *)0) {
+      if(scout_debugfd == (FILE *) NULL) {
         sprintf(buffer, "Can't open debugging file '%s'!", debug_filename);
         BSETCODE(-1, buffer);
         XSRETURN_UNDEF;
@@ -7238,12 +7497,12 @@ afs_do_scout(args)
 
     sktbytes = numservers * sizeof(struct sockaddr_in);
     FSSktArray = (struct sockaddr_in *) malloc(sktbytes);
-    if (FSSktArray == (struct sockaddr_in *)0) {
+    if (FSSktArray == (struct sockaddr_in *) NULL) {
       sprintf(buffer,
               "Can't malloc() %d sockaddrs (%d bytes) for the given servers",
               numservers, sktbytes);
       BSETCODE(-1, buffer);
-      if (scout_debugfd != (FILE *)0) {
+      if (scout_debugfd != (FILE *) NULL) {
         fprintf(scout_debugfd, "[%s] Closing debugging file\n", rn);
         fclose(scout_debugfd);
       }
@@ -7258,17 +7517,21 @@ afs_do_scout(args)
        else
          sprintf(fullsrvname, "%s.%s", (char *) SvPV(*av_fetch(host_array, i, 0), PL_na), basename);
        he = hostutil_GetHostByName(fullsrvname);
-       if(he == (struct hostent *)0) {
+       if(he == (struct hostent *) NULL) {
          sprintf(buffer, "Can't get host info for '%s'", fullsrvname);
          BSETCODE(-1, buffer);
-         if (scout_debugfd != (FILE *)0) {
+         if (scout_debugfd != (FILE *) NULL) {
            fprintf(scout_debugfd, "[%s] Closing debugging file\n", rn);
            fclose(scout_debugfd);
          }
          XSRETURN_UNDEF;
        }
        memcpy(&(curr_skt->sin_addr.s_addr), he->h_addr, 4);
-       curr_skt->sin_family = htons(AF_INET);    /* Internet family */
+#if defined(AFS_DARWIN_ENV) || defined(AFS_FBSD_ENV)
+        curr_skt->sin_family = AF_INET;         /*Internet family */
+#else
+        curr_skt->sin_family = htons(AF_INET);  /*Internet family */
+#endif
        curr_skt->sin_port   = htons(7000);       /* FileServer port */
        curr_skt++;
     }
@@ -7279,7 +7542,7 @@ afs_do_scout(args)
         sprintf(buffer, "Error returned by fsprobe_Init: %d", code);
       }
       BSETCODE(code, buffer);
-      if (scout_debugfd != (FILE *)0) {
+      if (scout_debugfd != (FILE *) NULL) {
         fprintf(scout_debugfd, "[%s] Closing debugging file\n", rn);
         fclose(scout_debugfd);
       }
@@ -7290,14 +7553,14 @@ afs_do_scout(args)
     if (code) {
       sprintf(buffer, "[%s] Handler routine returned error code %d. %s", rn, code, buff2);
       BSETCODE(code, buffer);
-      if (scout_debugfd != (FILE *)0) {
+      if (scout_debugfd != (FILE *) NULL) {
         fprintf(scout_debugfd, "[%s] Closing debugging file\n", rn);
         fclose(scout_debugfd);
       }
       XSRETURN_UNDEF;
     }
 
-    if (scout_debugfd != (FILE *)0) {
+    if (scout_debugfd != (FILE *) NULL) {
        fprintf(scout_debugfd, "[%s] Closing debugging file\n", rn);
        fclose(scout_debugfd);
     }
@@ -7320,8 +7583,8 @@ afs_do_udebug(args)
     int num_args = 0;
     char buffer[256] = "";
 
-    char *hostName = (char *) 0;
-    char *portName = (char *) 0;
+    char *hostName = (char *) NULL;
+    char *portName = (char *) NULL;
     afs_int32 hostAddr;
     struct in_addr inhostAddr;
     register afs_int32 i, j, code;
@@ -7410,7 +7673,7 @@ afs_do_udebug(args)
     }
 
     rx_Init(0);
-    sc = (struct rx_securityClass *) rxnull_NewClientSecurityObject();
+    sc = rxnull_NewClientSecurityObject();
     tconn = rx_NewConnection(hostAddr, port, VOTE_SERVICE_ID, sc, 0);
 
     /* now do the main call */
@@ -7421,10 +7684,10 @@ afs_do_udebug(args)
     code = VOTE_Debug(tconn, &udebug);
 #endif
     if (code == RXGEN_OPCODE)
-    {
+    {  ubik_debug * ptr = &udebug;
        oldServer = 1;             /* talking to a pre 3.5 server */
        memset(&udebug, 0, sizeof(udebug));
-       code = VOTE_DebugOld(tconn, &udebug);
+       code = VOTE_DebugOld(tconn, (struct ubik_debug_old *) ptr);
     }
 
     if (code) {
@@ -7438,7 +7701,7 @@ afs_do_udebug(args)
     if ( !oldServer )
     {
        ADDRESSES = newAV();
-       for ( j=0; udebug.interfaceAddr[j] && ( j<UBIK_MAX_INTERFACE_ADDR );j++) {
+       for ( j=0; udebug.interfaceAddr[j] && ( j<UBIK_MAX_INTERFACE_ADDR ); j++) {
           av_store(ADDRESSES, j, newSVpv(afs_inet_ntoa(htonl(udebug.interfaceAddr[j])), 0));
        }
        hv_store(RETVAL, "interfaceAddr", 13, newRV_inc((SV*)ADDRESSES), 0);
@@ -7525,22 +7788,25 @@ afs_do_udebug(args)
           code = VOTE_XSDebug(tconn, i, &usdebug, &isClone);
           if (code < 0) {
              if ( oldServer ) {                      /* pre 3.5 server */
+                ubik_sdebug * ptr = &usdebug;
                 memset(&usdebug, 0, sizeof(usdebug));
-                code = VOTE_SDebugOld(tconn, i, &usdebug);
+                code = VOTE_SDebugOld(tconn, i, (struct ubik_sdebug_old *) ptr);
              }
              else
                 code = VOTE_SDebug(tconn, i, &usdebug);
           }
 #else
           if ( oldServer ) {                      /* pre 3.5 server */
+             ubik_sdebug * ptr = &usdebug;
              memset(&usdebug, 0, sizeof(usdebug));
-             code = VOTE_SDebugOld(tconn, i, &usdebug);
+             code = VOTE_SDebugOld(tconn, i, (struct ubik_sdebug_old *) ptr);
           }
           else
              code = VOTE_SDebug(tconn, i, &usdebug);
 #endif
 
-          if (code > 0) break;        /* done */
+          if (code > 0)
+                break;          /* done */
           if (code < 0) {
              warn("error code %d from VOTE_SDebug\n", code);
              break;
@@ -7918,7 +8184,7 @@ afs_do_afsmonitor(args)
     /* Open output file, if provided. */
     if (output_filename) {
       outputFD = fopen(output_filename,"a");
-      if (outputFD == (FILE *)0) {
+      if (outputFD == (FILE *) NULL) {
         sprintf(buffer, "Failed to open output file %s", output_filename);
         BSETCODE(160, buffer);
         XSRETURN_UNDEF;
@@ -7970,7 +8236,7 @@ afs_do_afsmonitor(args)
           if(strcmp(key, "host")==0) {
             thresh_host = (char *)SvPV(value, PL_na);
             he = GetHostByName(thresh_host);
-            if(he == (struct hostent *)0) {
+            if(he == (struct hostent *) NULL) {
               sprintf(buffer, 
                       "Couldn't parse fsthresh flag; unable to resolve hostname %s\n", 
                       thresh_host);
@@ -7991,7 +8257,7 @@ afs_do_afsmonitor(args)
                 thresh_name, thresh_value, thresh_handler);
         if(!thresh_host) {
           code = my_parse_threshEntry(buffer, &global_fsThreshCount,
-                      &global_cmThreshCount, (struct afsmon_hostEntry *)0, 0, buff2);
+                      &global_cmThreshCount, (struct afsmon_hostEntry *) NULL, 0, buff2);
           if (code) {
             sprintf(buffer, "Couldn't parse fsthresh entry. %s", buff2);
             BSETCODE(code, buffer);
@@ -8039,7 +8305,7 @@ afs_do_afsmonitor(args)
         if (temp_host->numThresh) {
           numBytes = temp_host->numThresh * sizeof(struct Threshold);
           temp_host->thresh = (struct Threshold *)malloc(numBytes);
-          if (temp_host->thresh == (struct Threshold *)0) {
+          if (temp_host->thresh == (struct Threshold *) NULL) {
             sprintf(buffer, "Memory Allocation error 1.5");
             BSETCODE(25, buffer);
             XSRETURN_UNDEF;
@@ -8058,7 +8324,7 @@ afs_do_afsmonitor(args)
           if(strcmp(key, "host") == 0) {
             thresh_host = (char *)SvPV(value, PL_na);
             he = GetHostByName(thresh_host);
-            if(he == (struct hostent *)0) {
+            if(he == (struct hostent *) NULL) {
               sprintf(buffer, 
                       "Couldn't parse fsthresh flag; unable to resolve hostname %s\n", 
                       thresh_host);
@@ -8104,7 +8370,7 @@ afs_do_afsmonitor(args)
           if(strcmp(key, "host")==0) {
             thresh_host = (char *)SvPV(value, PL_na);
             he = GetHostByName(thresh_host);
-            if(he == (struct hostent *)0) {
+            if(he == (struct hostent *) NULL) {
               sprintf(buffer, 
                       "Couldn't parse cmthresh flag; unable to resolve hostname %s\n", 
                       thresh_host);
@@ -8124,7 +8390,7 @@ afs_do_afsmonitor(args)
         sprintf(buffer, "thresh cm %s %s %s", thresh_name, thresh_value, thresh_handler);
         if(!thresh_host) {
           code = my_parse_threshEntry(buffer, &global_fsThreshCount,
-                      &global_cmThreshCount, (struct afsmon_hostEntry *)0, 0, buff2);
+                      &global_cmThreshCount, (struct afsmon_hostEntry *) NULL, 0, buff2);
           if (code) {
             sprintf(buffer, "Couldn't parse cmthresh entry. %s", buff2);
             BSETCODE(code, buffer);
@@ -8172,7 +8438,7 @@ afs_do_afsmonitor(args)
         if (temp_host->numThresh) {
           numBytes = temp_host->numThresh * sizeof(struct Threshold);
           temp_host->thresh = (struct Threshold *)malloc(numBytes);
-          if (temp_host->thresh == (struct Threshold *)0) {
+          if (temp_host->thresh == (struct Threshold *) NULL) {
             sprintf(buffer, "Memory Allocation error 2.5");
             BSETCODE(25, buffer);
             XSRETURN_UNDEF;
@@ -8191,7 +8457,7 @@ afs_do_afsmonitor(args)
           if(strcmp(key, "host") == 0) {
             thresh_host = (char *)SvPV(value, PL_na);
             he = GetHostByName(thresh_host);
-            if(he == (struct hostent *)0) {
+            if(he == (struct hostent *) NULL) {
               sprintf(buffer, 
                       "Couldn't parse cmthresh flag; unable to resolve hostname %s\n", 
                       thresh_host);
@@ -8238,7 +8504,7 @@ afs_do_afsmonitor(args)
 
       FSsktbytes = numFS * sizeof(struct sockaddr_in);
       FSSktArray = (struct sockaddr_in *) malloc(FSsktbytes);
-      if (FSSktArray == (struct sockaddr_in *)0) {
+      if (FSSktArray == (struct sockaddr_in *) NULL) {
         sprintf(buffer,"cannot malloc %d sockaddr_ins for fileservers", numFS);
         BSETCODE(-1, buffer);
         XSRETURN_UNDEF;
@@ -8253,14 +8519,18 @@ afs_do_afsmonitor(args)
       while (curr_FS) {
         strncpy(fullhostname,curr_FS->hostName,sizeof(fullhostname));
         he = GetHostByName(fullhostname);
-        if (he == (struct hostent *)0) {
+        if (he == (struct hostent *) NULL) {
           sprintf(buffer,"Cannot get host info for %s", fullhostname);
           BSETCODE(-1, buffer);
           XSRETURN_UNDEF;
         }
         strncpy(curr_FS->hostName,he->h_name,HOST_NAME_LEN); /* complete name*/
         memcpy(&(curr_skt->sin_addr.s_addr), he->h_addr, 4);
-        curr_skt->sin_family = htons(AF_INET);    /*Internet family*/
+#if defined(AFS_DARWIN_ENV) || defined(AFS_FBSD_ENV)
+            curr_skt->sin_family = AF_INET;             /*Internet family */
+#else
+            curr_skt->sin_family = htons(AF_INET);      /*Internet family */
+#endif
         curr_skt->sin_port   = htons(7000);       /*FileServer port*/
 #ifdef STRUCT_SOCKADDR_HAS_SA_LEN
         curr_skt->sin_len = sizeof(struct sockaddr_in);
@@ -8275,7 +8545,7 @@ afs_do_afsmonitor(args)
 
       numCollIDs = 1;
       collIDP = (afs_int32 *) malloc (sizeof (afs_int32));
-      if (collIDP == (afs_int32 *)0) {
+      if (collIDP == (afs_int32 *) NULL) {
         sprintf(buffer,"failed to allocate a measely afs_int32 word. Argh!");
         BSETCODE(-1, buffer);
         XSRETURN_UNDEF;
@@ -8299,7 +8569,7 @@ afs_do_afsmonitor(args)
 
       CMsktbytes = numCM * sizeof(struct sockaddr_in);
       CMSktArray = (struct sockaddr_in *) malloc(CMsktbytes);
-      if (CMSktArray == (struct sockaddr_in *)0) {
+      if (CMSktArray == (struct sockaddr_in *) NULL) {
         sprintf(buffer,"cannot malloc %d sockaddr_ins for CM entries", numCM);
         BSETCODE(-1, buffer);
         XSRETURN_UNDEF;
@@ -8314,7 +8584,7 @@ afs_do_afsmonitor(args)
       while (curr_CM) {
         strncpy(fullhostname,curr_CM->hostName,sizeof(fullhostname));
         he = GetHostByName(fullhostname);
-        if (he == (struct hostent *)0) {
+        if (he == (struct hostent *) NULL) {
           sprintf(buffer,"Cannot get host info for %s", fullhostname);
           BSETCODE(-1, buffer);
           XSRETURN_UNDEF;
@@ -8337,7 +8607,7 @@ afs_do_afsmonitor(args)
 
       numCollIDs = 1;
       collIDP = (afs_int32 *) malloc (sizeof (afs_int32));
-      if (collIDP == (afs_int32 *)0) {
+      if (collIDP == (afs_int32 *) NULL) {
         sprintf(buffer,"failed to allocate a measely afs_int32 word. Argh!");
         BSETCODE(-1, buffer);
         XSRETURN_UNDEF;
@@ -8420,8 +8690,8 @@ afs_do_rxdebug(args)
     int withIdleThreads;
     int withPeers;
     struct rx_debugStats tstats;
-    char *portName = (char *) 0;
-    char *hostName = (char *) 0;
+    char *portName = (char *) NULL;
+    char *hostName = (char *) NULL;
     struct rx_debugConn tconn;
     short noConns=0;
     short showPeers=0;
@@ -8658,7 +8928,7 @@ afs_do_rxdebug(args)
 
         RXSTATS = newHV();
 
-        myPrintTheseStats(RXSTATS, rxstats);
+        myPrintTheseStats(RXSTATS, &rxstats);
 
         hv_store(RETVAL, "rxstats", 7, newRV_inc((SV*)(RXSTATS)), 0);
 
@@ -8929,6 +9199,10 @@ constant(name, arg=0)
                     sv_setiv(ST(0),AFS_STATS_NUM_FS_XFER_OPS);
 		else if (strEQ(name,"AFS_XSTATSCOLL_CALL_INFO")) 
                     sv_setiv(ST(0),AFS_XSTATSCOLL_CALL_INFO);
+#ifndef NOAFS_XSTATSCOLL_CBSTATS
+		else if (strEQ(name,"AFS_XSTATSCOLL_CBSTATS")) 
+                    sv_setiv(ST(0),AFS_XSTATSCOLL_CBSTATS);
+#endif
 		else if (strEQ(name,"AFS_XSTATSCOLL_FULL_PERF_INFO")) 
                     sv_setiv(ST(0),AFS_XSTATSCOLL_FULL_PERF_INFO);
 		else if (strEQ(name,"AFS_XSTATSCOLL_PERF_INFO")) 

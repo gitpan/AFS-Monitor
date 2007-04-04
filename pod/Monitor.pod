@@ -1,10 +1,10 @@
 #------------------------------------------------------------------------------
 # afsperldebug.pod
 #
-# Copyright © 2004 Alf Wachsmann <alfw@slac.stanford.edu> and
+# Copyright © 2004-2006 Alf Wachsmann <alfw@slac.stanford.edu> and
 #                  Elizabeth Cassell <e_a_c@mailsnare.net>
 #
-# $Revision: 1.1 $ $Date: 2004/10/22 15:04:40 $ $Author: alfw $
+# $Revision: 1.2 $ $Date: 2006/07/05 22:25:10 $ $Author: alfw $
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -61,28 +61,40 @@ Server process. See L<xstat_fs_test(1)>
 
 The configurations that this package has been tested on are listed below:
 
-        OS               @sys           compiler
-        ------------------------------------------
-        Solaris          sun4x_58       gcc-2.95.3
-                         sun4x_59       gcc-2.95.3
+  OS              @sys            Perl            	OpenAFS
+  -----------------------------------------------------------------------------
+  FC5             amd64_linux26   v5.8.8			1.4.2-beta1
+  RHEL4-64        amd64_linux26   v5.8.5			1.4.1
+  RHEL4-32        no machine
+  RHEL3-32        i386linux24     v5.8.0, v5.8.8, v5.6.0	1.4.1, 1.2.10
+  RHEL3-64        no machine
+  SLES9           ia64_linux26    v5.8.3			1.4.1
 
-        Red Hat 7.2      i386_linux24   gcc-2.95.3
+  Solaris 5.8     sun4x_58        v5.8.8, v5.6.0, 5.005_03	1.4.1, 1.2.10
+  Solaris 5.9     sun4x_59        v5.8.8, v5.6.0		1.4.1, 1.2.10
+  Solaris 5.10    sun4x_510       v5.8.8, v5.6.0		1.4.1, 1.2.10
 
-        Red Hat Enterprise Linux 3
-                         i386_linux24   gcc-3.2.3
-	SuSE Linux 8.2   i386_linux24   gcc-3.3.3
-
-	Mac OS X	 ppc_darwin_70	gcc-3.3
+  Mac OS X 10.3   ppc_darwin_70   v5.8.1-RC3			1.4.1
+  Mac OS x 10.4   ppc_darwin_80   v5.8.6			1.4.1
 
 
-Perl 5.6.1 or newer (haven't tested on any older versions.)
-No problems were found with threaded Perl.
-AFS system libraries (either B<IBM/Transarc AFS v3.6> or B<OpenAFS 1.2.x>
-or newer) AFS header files.
+Perl 5.6.0 or newer. No problems were found with threaded Perl.
+AFS system libraries and header files from B<OpenAFS 1.2.x> or newer.
+It is not know whether version 0.3.0 of this module works with
+B<IBM/Transarc AFS> because I don't have this version available any more.
+
 
 =head1 PREREQUISITES
 
 This package does not depend on any other Perl modules.
+
+=head1 KNOWN BUGS
+
+This package depends on the corresponding OpenAFS libraries.
+These underlying libraries still don't work properly on or with
+64bit Linux systems. The problem manifests itself in statistic
+values beeing zero instead of the real value.
+This problem will go away once the OpenAFS libraries are fixed.
 
 =head1 AUTHORS
 
@@ -100,7 +112,8 @@ This documentation was written by
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- Copyright 2004 Alf Wachsmann <alfw@slac.stanford.edu> and
+ Copyright 2004-2006
+		Alf Wachsmann <alfw@slac.stanford.edu> and
                 Elizabeth Cassell <e_a_c@mailsnare.net>
  All rights reserved.
 

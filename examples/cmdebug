@@ -3,7 +3,7 @@
 # Copyright © 2004 Alf Wachsmann <alfw@slac.stanford.edu> and
 #                  Elizabeth Cassell <e_a_c@mailsnare.net>
 #
-# $Revision: 1.7 $ $Date: 2004/10/22 15:04:40 $ $Author: alfw $
+# $Revision: 1.8 $ $Date: 2006/07/05 22:25:10 $ $Author: alfw $
 #
 
 use blib;
@@ -11,19 +11,20 @@ use strict;
 use AFS::Monitor qw(cmdebug constant);
 use Data::Dumper;
 
-my $server = "virtue.openafs.org";
+#my $server = "virtue.openafs.org";
+my $server = "afs04.slac.stanford.edu";
 my $port   = 7001;
 
 my @tests;      # choose which tests to run
-$tests[1] = 0;  # test of server $server, port $port, long output
+$tests[1] = 1;  # test of server $server, port $port, long output
 $tests[2] = 0;  # test of server $server, no port
-$tests[3] = 1;  # test of nonexistant server
+$tests[3] = 0;  # test of nonexistant server
 $tests[4] = 0;  # test of server $server, bad port
 $tests[5] = 0;  # test of server $server, port $port
 
 my $all = 0;
 
-my $showdump = 0;   # print entire contents of hash for each test
+my $showdump = 1;   # print entire contents of hash for each test
 my $formatted = 1;  # print output formatted like the c cmdebug program
 
 print "# Starting now... #\n";
@@ -160,9 +161,22 @@ sub parse_result {
       elsif ($centry->{mvstat} == 2) {
         print "volume root";
       }
+      elsif ($centry->{mvstat} == 3) {
+        print "directory";
+      }
+      elsif ($centry->{mvstat} == 4) {
+        print "symlink";
+      }
+      elsif ($centry->{mvstat} == 5) {
+        print "microsoft dfs link";
+      }
+      elsif ($centry->{mvstat} == 6) {
+        print "invalid link";
+      }
       else {
         printf("bogus mvstat %d", $centry->{mvstat});
       }
+
       printf("\n    states (0x%x)", $centry->{states});
       if ($centry->{states} & 1) {
         print ", stat'd";

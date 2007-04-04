@@ -8,7 +8,6 @@ BEGIN {
   use_ok('AFS::Monitor', qw(error_message constant));
 }
 
-
 # Some very basic tests first:
 
 sub foo { return &AFS::Monitor::RX_CALL_CLEARED }
@@ -35,7 +34,7 @@ is(&AFS::Monitor::RX_CONN_DESTROY_ME, 2, 'AutoLoad Constant RX_CONN_DESTROY_ME')
 use AFS::Monitor;
 can_ok('AFS::Monitor', qw(rxdebug));
 
-my $servers = 'virtue.openafs.org';
+my $servers = 'afs02.slac.stanford.edu';
 my $port    = 7001;
 my $rxdeb   = rxdebug(version => 1,
                       servers => $servers,

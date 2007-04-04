@@ -3,7 +3,7 @@
 # Copyright © 2004 Alf Wachsmann <alfw@slac.stanford.edu> and
 #                  Elizabeth Cassell <e_a_c@mailsnare.net>
 #
-# $Revision: 1.7 $ $Date: 2004/10/22 15:04:40 $ $Author: alfw $
+# $Revision: 1.8 $ $Date: 2006/05/31 16:22:51 $ $Author: alfw $
 #
 
 use blib;
@@ -676,7 +676,6 @@ sub PrintCallInfo {
   printf "\t%10d afs_setpag\n", $data->{afs_setpag};
   printf "\t%10d genpag\n", $data->{genpag};
   printf "\t%10d getpag\n", $data->{getpag};
-  printf "\t%10d genpag\n", $data->{genpag};
   printf "\t%10d afs_GetMariner\n", $data->{afs_GetMariner};
   printf "\t%10d afs_AddMarinerName\n", $data->{afs_AddMarinerName};
   printf "\t%10d afs_open\n", $data->{afs_open};

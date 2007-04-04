@@ -1,9 +1,10 @@
 #!/usr/bin/perl -w
 #
-# Copyright © 2004 Alf Wachsmann <alfw@slac.stanford.edu> and
-#                  Elizabeth Cassell <e_a_c@mailsnare.net>
+# Copyright © 2004-2006
+#		Alf Wachsmann <alfw@slac.stanford.edu> and
+#		Elizabeth Cassell <e_a_c@mailsnare.net>
 #
-# $Revision: 1.7 $ $Date: 2004/10/22 15:04:40 $ $Author: alfw $
+# $Revision: 1.8 $ $Date: 2006/07/05 22:25:10 $ $Author: alfw $
 #
 
 use blib;
@@ -11,14 +12,18 @@ use strict;
 use AFS::Monitor qw(xstat_fs_test constant);
 use Data::Dumper;
 
-my @fsname = ("virtue.openafs.org", "andrew.e.kth.se");
-my @collID = (0, 1, 2);
+#my @fsname = ("virtue.openafs.org", "andrew.e.kth.se");
+my @fsname = ("afs101.slac.stanford.edu");
+my @collID = (0, 1, 2, 3);
 
 my @tests;      # choose which tests to run
 $tests[1] = 0;  # test of fsname @fsname and collIDs @collID
 $tests[2] = 0;  # test of fsname but no collID
-$tests[3] = 1;  # test of single fsname with collID
-$tests[4] = 1;  # test of single fsname but no single collID
+$tests[3] = 1;  # test of single fsname with collID 0
+$tests[4] = 1;  # test of single fsname with collID 1
+$tests[5] = 0;  # test of single fsname with collID 2
+$tests[6] = 1;  # test of single fsname with collID 3
+$tests[7] = 0;  # test of single fsname but no single collID
 
 my $all = 0;
 
@@ -53,6 +58,28 @@ if ($all || $tests[3]) {
   print "\n******** TEST 3: ********\n";
 
   print "\nxstat_fs_test -fsname ", $fsname[0],
+                       " -collID 0\n\n";
+
+  $result = xstat_fs_test(fsname => $fsname[0],
+                          collID => 0);
+  parse_result($result);
+}
+
+if ($all || $tests[4]) {
+  print "\n******** TEST 4: ********\n";
+
+  print "\nxstat_fs_test -fsname ", $fsname[0],
+                       " -collID 1\n\n";
+
+  $result = xstat_fs_test(fsname => $fsname[0],
+                          collID => 1);
+  parse_result($result);
+}
+
+if ($all || $tests[5]) {
+  print "\n******** TEST 5: ********\n";
+
+  print "\nxstat_fs_test -fsname ", $fsname[0],
                        " -collID 2\n\n";
 
   $result = xstat_fs_test(fsname => $fsname[0],
@@ -61,8 +88,20 @@ if ($all || $tests[3]) {
 }
 
 
-if ($all || $tests[4]) {
-  print "\n******** TEST 4: ********\n";
+if ($all || $tests[6]) {
+  print "\n******** TEST 6: ********\n";
+
+  print "\nxstat_fs_test -fsname ", $fsname[0],
+                       " -collID 3\n\n";
+
+  $result = xstat_fs_test(fsname => $fsname[0],
+                          collID => 3);
+  parse_result($result);
+}
+
+
+if ($all || $tests[7]) {
+  print "\n******** TEST 7: ********\n";
 
   print "\nxstat_fs_test -fsname ", $fsname[0], "\n\n";
 
@@ -101,6 +140,8 @@ sub parse_result {
         parse_PerfInfo($host);
       } elsif($host->{collectionNumber} == constant("AFS_XSTATSCOLL_FULL_PERF_INFO")) {
         parse_FullPerfInfo($host);
+      } elsif($host->{collectionNumber} == constant("AFS_XSTATSCOLL_CBSTATS")) {
+        parse_CbCounters($host);
       } else {
         print "Unknown collection: $host->{collectionNumber}\n";
       }
@@ -212,7 +253,13 @@ sub parse_OverallPerfInfo {
   printf "\t%10d rx_nClientConns\n",       $data->{rx_nClientConns};
   printf "\t%10d rx_nPeerStructs\n",       $data->{rx_nPeerStructs};
   printf "\t%10d rx_nCallStructs\n",       $data->{rx_nCallStructs};
-  printf "\t%10d rx_nFreeCallStructs\n\n", $data->{rx_nFreeCallStructs};
+  printf "\t%10d rx_nFreeCallStructs\n", $data->{rx_nFreeCallStructs};
+  if (defined($data->{rx_nBusies})) {  # only on OpenAFS-1.4.1
+    printf "\t%10d rx_nBusies\n\n", $data->{rx_nBusies};
+
+    printf "\t%10d fs_nBusies\n", $data->{fs_nBusies};
+    printf "\t%10d fs_GetCapabilities\n\n", $data->{fs_GetCapabilities};
+  }
 
   printf "\t%10d host_NumHostEntries\n",   $data->{host_NumHostEntries};
   printf "\t%10d host_HostBlocks\n",       $data->{host_HostBlocks};
@@ -267,6 +314,33 @@ sub parse_DetailedPerfInfo {
 
   parse_XferTiming("FetchData", $xferop);
   parse_XferTiming("StoreData", $xferop);
+}
+
+
+sub parse_CbCounters {
+  my $host = shift;
+
+  printf("AFS_XSTATSCOLL_CBSTATS (coll %d) for FS %s\n[Probe 1, %s]\n\n",
+          $host->{collectionNumber},
+          $host->{hostName},
+          scalar localtime($host->{probeTime}));
+
+  printf "\t%10d DeleteFiles\n",        $host->{CbCounters}->{DeleteFiles};
+  printf "\t%10d DeleteCallBacks\n",    $host->{CbCounters}->{DeleteCallBacks};
+  printf "\t%10d BreakCallBacks\n",     $host->{CbCounters}->{BreakCallBacks};
+  printf "\t%10d AddCallBack\n",        $host->{CbCounters}->{AddCallBack};
+  printf "\t%10d GotSomeSpaces\n",      $host->{CbCounters}->{GotSomeSpaces};
+  printf "\t%10d DeleteAllCallBacks\n", $host->{CbCounters}->{DeleteAllCallBacks};
+  printf "\t%10d nFEs\n",               $host->{CbCounters}->{nFEs};
+  printf "\t%10d nCBs\n",               $host->{CbCounters}->{nCBs};
+  printf "\t%10d nblks\n",              $host->{CbCounters}->{nblks};
+  printf "\t%10d CBsTimedOut\n",        $host->{CbCounters}->{CBsTimedOut};
+  printf "\t%10d nbreakers\n",          $host->{CbCounters}->{nbreakers};
+  printf "\t%10d GSS1\n",               $host->{CbCounters}->{GSS1};
+  printf "\t%10d GSS2\n",               $host->{CbCounters}->{GSS2};
+  printf "\t%10d GSS3\n",               $host->{CbCounters}->{GSS3};
+  printf "\t%10d GSS4\n",               $host->{CbCounters}->{GSS4};
+  printf "\t%10d GSS5\n",               $host->{CbCounters}->{GSS5};
 }
 
 

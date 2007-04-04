@@ -1,3 +1,27 @@
+#***********************************************************************
+#
+# AFS.pm - AFS extensions for Perl
+#
+#  RCS-Id: @(#)$Id: Monitor.pm,v 1.4 2006/07/05 22:25:10 alfw Exp $
+#
+# Copyright (c) 2003, International Business Machines Corporation and others.
+#
+# This software has been released under the terms of the IBM Public
+# License.  For details, see the IBM-LICENSE file in the LICENCES
+# directory or online at http://www.openafs.org/dl/license10.html
+#
+# Contributors
+#         2004-2006: Elizabeth Cassell <e_a_c@mailsnare.net>
+#                    Alf Wachsmann <alfw@slac.stanford.edu>
+#
+# The code for the original library were mainly taken from the AFS
+# source distribution, which comes with this message:
+#
+#    Copyright (C) 1989-1994 Transarc Corporation - All rights reserved
+#    P_R_P_Q_# (C) COPYRIGHT IBM CORPORATION 1987, 1988, 1989
+#
+#**********************************************************************
+
 package AFS::Monitor;
 
 use Carp;
@@ -10,7 +34,7 @@ use vars qw(@ISA $VERSION);
 
 @ISA = qw(Exporter AutoLoader DynaLoader);
 
-$VERSION = "0.2.2";
+$VERSION = "0.3.1";
 
 @EXPORT = qw (
               afsmonitor

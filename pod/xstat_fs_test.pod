@@ -74,6 +74,11 @@ plus some additional, detailed performance figures about the File Server (for
 example, minimum, maximum, and cumulative statistics regarding File Server
 RPCs, how long they take to complete, and how many succeed).
 
+=item B<3>
+
+Only when compiled with OpenAFS-1.4.1 or newer.
+Reports various internal CallBack statistics related to the File Server.
+
 =back
 
 =back

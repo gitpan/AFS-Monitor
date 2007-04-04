@@ -1,10 +1,10 @@
 #------------------------------------------------------------------------------
 # afsmonitor.pod
 #
-# Copyright © 2004 Alf Wachsmann <alfw@slac.stanford.edu> and
+# Copyright © 2004-2006 Alf Wachsmann <alfw@slac.stanford.edu> and
 #                  Elizabeth Cassell <e_a_c@mailsnare.net>
 #
-# $Revision: 1.11 $ $Date: 2004/10/22 15:04:40 $ $Author: alfw $
+# $Revision: 1.12 $ $Date: 2006/07/05 22:25:10 $ $Author: alfw $
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -387,6 +387,13 @@ column of the line.
 
 =back
 
+=head1 KNOWN BUGS
+
+Some statistical values reported by L<xstat_fs_test(1)> are not yet
+included in afsmonitor. This is a problem of the underlying OpenAFS
+libraries and will be fixed in this Perl module as soon as those
+libraries are fixed.
+
 =head1 AUTHORS
 
 The code and documentation for this class were contributed by Stanford
@@ -403,7 +410,8 @@ documentation was written by
 
 =head1 COPYRIGHT AND DISCLAIMER
 
- Copyright 2004 Alf Wachsmann <alfw@slac.stanford.edu> and
+ Copyright 2004-2006
+		Alf Wachsmann <alfw@slac.stanford.edu> and
                 Elizabeth Cassell <e_a_c@mailsnare.net>
  All rights reserved.
 

@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# RCS-Id: "@(#)$Id: Makefile.PL,v 1.20 2007/04/04 17:01:43 alfw Exp $"
+# RCS-Id: "@(#)$Id: Makefile.PL,v 1.21 2007/05/14 18:24:17 alfw Exp $"
 #
 # Copyright © 2001-2004 Norbert E. Gruener <nog@MPA-Garching.MPG.de>
 #             2004-2006 Alf Wachsmann <alfw@slac.stanford.edu>
@@ -17,7 +17,7 @@ use Config;
 my $archname = $Config{'archname'};
 # if ($archname =~ /thread/i) { die "Threaded Perl is not supported ...\n"; }
 
-my $VERSION = "0.3.1";
+my $VERSION = "0.3.2";
 
 # give me the path to the AFS system libraries
 # used to build the AFS extension module

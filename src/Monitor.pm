@@ -2,7 +2,7 @@
 #
 # AFS.pm - AFS extensions for Perl
 #
-#  RCS-Id: @(#)$Id: Monitor.pm,v 1.4 2006/07/05 22:25:10 alfw Exp $
+#  RCS-Id: @(#)$Id: Monitor.pm,v 1.5 2007/05/14 18:24:17 alfw Exp $
 #
 # Copyright (c) 2003, International Business Machines Corporation and others.
 #
@@ -34,7 +34,7 @@ use vars qw(@ISA $VERSION);
 
 @ISA = qw(Exporter AutoLoader DynaLoader);
 
-$VERSION = "0.3.1";
+$VERSION = "0.3.2";
 
 @EXPORT = qw (
               afsmonitor

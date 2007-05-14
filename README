@@ -1,4 +1,4 @@
-This is the README file for the Perl extension module AFS::Monitor (Version 0.3.1) 
+This is the README file for the Perl extension module AFS::Monitor (Version 0.3.2) 
 
 
 DESCRIPTION
@@ -34,11 +34,11 @@ BUILDING & INSTALLING
     should be straightforward. The AFS::Monitor module is distributed as a
     single gzipped tar archive file:
 
-            AFS-Monitor-0.3.0.tar.gz
+            AFS-Monitor-0.3.2.tar.gz
 
     Unpack the archive to create an AFS-Monitor installation directory:
 
-        tar zxvf AFS-Monitor-0.3.0.tar.gz
+        tar zxvf AFS-Monitor-0.3.2.tar.gz
 
     'cd' into that directory, make, test and install the modules. You
     have to specify the location of the AFS system libraries. While
@@ -50,7 +50,7 @@ BUILDING & INSTALLING
 
     This is the sequence of commands to build the modules:
 
-        cd AFS-Monitor-0.3.0
+        cd AFS-Monitor-0.3.2
 
         [1] this step is optional
         setenv AFSPATH 'path_to_the_AFS_system_libraries' # tcsh-shell

@@ -1,3 +1,7 @@
+Version 0.3.2 (released May 14, 2007)
+  * removed spurious lib subdirectory from tar file
+    Thanks to David Cantrell <david at cantrell.org.uk>
+
 Version 0.3.1 (released April 4, 2007)
 
  * changed permissions from 755 to 0755 in Makefile.PL

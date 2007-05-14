@@ -5,7 +5,7 @@ use Config;
 
 my $archname = $Config{'archname'};
 
-my $VERSION = "0.3.1";
+my $VERSION = "0.3.2";
 
 # provide the POD documentation
 mkdir('./lib', 0755);
@@ -29,7 +29,7 @@ WriteMakefile(
                    ('AUTHOR'   => 'Alf Wachsmann, Elizabeth Cassell',
                     'ABSTRACT' => 'Perl interface to AFS monitoring and debugging APIs'
                    ) : () ),
-              'realclean'  => {FILES => 'Makefile.bak pod/*.html pod/pod2htm* lib/AFS/*.pod lib/AFS/Monitor/*.pod examples/debug_out/debug examples/debug_out/outputfile'},
+              'realclean'  => {FILES => 'Makefile.bak pod/*.html pod/pod2htm* lib/AFS/*.pod lib/AFS/Monitor/*.pod examples/debug_out/debug examples/debug_out/outputfile lib'},
              );
 
 
